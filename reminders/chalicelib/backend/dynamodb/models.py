@@ -2,7 +2,7 @@
 
 from pynamodb.models import Model
 from pynamodb.attributes import (
-    UnicodeAttribute, UTCDateTimeAttribute, UnicodeSetAttribute
+    UnicodeAttribute, UTCDateTimeAttribute, UnicodeSetAttribute, BooleanAttribute
 )
 
 
@@ -13,13 +13,18 @@ class Reminders(Model):
     # user_id (hash key) + reminder_id+reminder_title(sort key)
     class Meta:
         table_name = 'Reminders'
+        region = 'eu-central-1'
 
     reminder_id = UnicodeAttribute(hash_key=True)
     user_id = UnicodeAttribute(range_key=True)
     reminder_title = UnicodeAttribute()
-    reminder_title_reminder_id = UnicodeAttribute()
     reminder_tags = UnicodeSetAttribute()
-    reminder_expiration_date_time = UTCDateTimeAttribute()
-    reminder_frequency = UnicodeAttribute(default='Only once')
-    next_reminder_date_time = UTCDateTimeAttribute()
     reminder_description = UnicodeAttribute()
+    reminder_frequency = UnicodeAttribute(default='Only once')
+    reminder_tasks = UnicodeSetAttribute(default=set())
+    reminder_expiration_date_time = UTCDateTimeAttribute(null=True)
+    reminder_title_reminder_id = UnicodeAttribute()
+    next_reminder_date_time = UTCDateTimeAttribute()
+    should_expire = BooleanAttribute()
+
+
