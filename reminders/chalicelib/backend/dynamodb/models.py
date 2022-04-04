@@ -4,6 +4,23 @@ from pynamodb.models import Model
 from pynamodb.attributes import (
     UnicodeAttribute, UTCDateTimeAttribute, UnicodeSetAttribute, BooleanAttribute
 )
+from pynamodb.indexes import GlobalSecondaryIndex, IncludeProjection
+
+
+class UserIdReminderTitleIndex(GlobalSecondaryIndex):
+    """Global secondary index for table Reminders."""
+    class Meta:
+        index_name = 'UserIdReminderTitleGsi'
+        projection = IncludeProjection(
+            [
+                "reminder_expiration_date_time",
+                "reminder_id"
+            ]
+        )
+
+    # Global secondary index hash and range keys
+    user_id = UnicodeAttribute(hash_key=True)
+    reminder_title = UnicodeAttribute(range_key=True)
 
 
 class Reminders(Model):
@@ -23,8 +40,9 @@ class Reminders(Model):
     reminder_frequency = UnicodeAttribute(default='Only once')
     reminder_tasks = UnicodeSetAttribute(default=set())
     reminder_expiration_date_time = UTCDateTimeAttribute(null=True)
-    reminder_title_reminder_id = UnicodeAttribute()
     next_reminder_date_time = UTCDateTimeAttribute()
+    reminder_creation_time = UTCDateTimeAttribute()
     should_expire = BooleanAttribute()
+    view_index = UserIdReminderTitleIndex()
 
 

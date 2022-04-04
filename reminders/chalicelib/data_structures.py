@@ -9,7 +9,7 @@ def _datetime_validator(value: str) -> datetime.datetime:
 
 
 class ReminderFrequency(Enum):
-    once = ("once",)
+    once = "once"
     monthly = "monthly"
     daily = "daily"
     yearly = "yearly"
@@ -47,4 +47,4 @@ class NewReminder(pydantic.BaseModel):
     should_expire: bool
     reminder_expiration_date_time: Optional[datetime.datetime]
     next_reminder_date_time: datetime.datetime
-    reminder_title_reminder_id: str
+    reminder_creation_time: datetime.datetime
