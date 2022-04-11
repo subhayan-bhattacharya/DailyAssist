@@ -41,11 +41,17 @@ def create_a_new_reminder():
             user_email=request_context["authorizer"]["claims"]["email"],
         )
         # Check if the user has already created a similar entry by querying the GSI
-        reminders_present = list(DynamoBackend.get_a_reminder_gsi(user_details.user_name, reminder_details.reminder_title))
+        reminders_present = list(
+            DynamoBackend.get_a_reminder_gsi(
+                user_details.user_name, reminder_details.reminder_title
+            )
+        )
         if len(reminders_present) > 0:
             logging.error(f"There are reminders present {reminders_present}")
-            raise ValueError(f"There is already a reminder with {reminder_details.reminder_title}"
-                             f" for user {user_details.user_name}")
+            raise ValueError(
+                f"There is already a reminder with {reminder_details.reminder_title}"
+                f" for user {user_details.user_name}"
+            )
 
         reminder_id = str(uuid.uuid1())
         new_reminder = data_structures.NewReminder(
