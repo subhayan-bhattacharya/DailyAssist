@@ -1,14 +1,15 @@
+import datetime
 import json
+import logging
+import os
+import traceback
 import uuid
 
-from chalice import Chalice, Response
-from chalice import CognitoUserPoolAuthorizer
-from chalicelib.backend.dynamodb.dynamo_backend import DynamoBackend
+from chalice import Chalice, CognitoUserPoolAuthorizer, Response
+from pydantic import ValidationError
+
 from chalicelib import data_structures
-import os
-import datetime
-import logging
-import traceback
+from chalicelib.backend.dynamodb.dynamo_backend import DynamoBackend
 
 app = Chalice(app_name="daily_assist_reminders")
 
@@ -33,9 +34,11 @@ def create_a_new_reminder():
         request_body["reminder_frequency"] = data_structures.ReminderFrequency[
             request_body["reminder_frequency"]
         ]
+
         reminder_details = data_structures.ReminderDetailsFromRequest.parse_obj(
             request_body
         )
+
         user_details = data_structures.UserDetails(
             user_name=request_context["authorizer"]["claims"]["cognito:username"],
             user_email=request_context["authorizer"]["claims"]["email"],
@@ -49,24 +52,40 @@ def create_a_new_reminder():
         if len(reminders_present) > 0:
             logging.error(f"There are reminders present {reminders_present}")
             raise ValueError(
-                f"There is already a reminder with {reminder_details.reminder_title}"
+                f"There is already a reminder with name {reminder_details.reminder_title}"
                 f" for user {user_details.user_name}"
             )
 
         reminder_id = str(uuid.uuid1())
-        new_reminder = data_structures.NewReminder(
-            reminder_id=reminder_id,
-            user_id=user_details.user_name,
-            reminder_title=reminder_details.reminder_title,
-            reminder_description=reminder_details.reminder_description,
-            reminder_tags=reminder_details.reminder_tags,
-            reminder_frequency=reminder_details.reminder_frequency.value,
-            should_expire=reminder_details.should_expire,
-            reminder_expiration_date_time=reminder_details.reminder_expiration_date_time,
-            next_reminder_date_time=reminder_details.next_reminder_date_time,
-            reminder_creation_time=datetime.datetime.now(),
+
+        reminder_details_as_dict = reminder_details.dict()
+        reminder_details_as_dict["reminder_frequency"] = reminder_details_as_dict["reminder_frequency"].value
+        new_reminder = data_structures.NewReminder.parse_obj(
+            {
+                **{
+                    "reminder_id": reminder_id,
+                    "reminder_creation_time": datetime.datetime.now(),
+                    "user_id": user_details.user_name
+                },
+                **reminder_details_as_dict,
+            }
         )
+
         DynamoBackend.create_a_new_reminder(new_reminder=new_reminder)
+    except ValidationError as error:
+        traceback.print_exc()
+        # This is a hack to get the error message string in pydantic
+        error_message = str(error.raw_errors[0].exc)
+        return Response(
+            body=json.dumps(
+                {
+                    "message": "Could not create a new reminder!!",
+                    "error": error_message,
+                },
+            ),
+            status_code=400,
+            headers={"Content-Type": "application/json"},
+        )
     except Exception as error:
         traceback.print_exc()
         return Response(
@@ -83,7 +102,44 @@ def create_a_new_reminder():
     )
 
 
-@app.route("/reminders", methods=["GET"], authorizer=authorizer)
-def get_all_reminders():
-    """Get all the reminders create or shared by user."""
-    pass
+@app.route(
+    "/reminders",
+    methods=["GET"],
+    authorizer=authorizer,
+)
+def get_all_reminders_for_a_user():
+    """Gets the list of all reminders for a user."""
+    try:
+        request_context = app.current_request.context
+        user_details = data_structures.UserDetails(
+            user_name=request_context["authorizer"]["claims"]["cognito:username"],
+            user_email=request_context["authorizer"]["claims"]["email"],
+        )
+        all_reminder_details = DynamoBackend.get_all_reminders_for_a_user(user_id=user_details.user_name)
+        return [
+            json.loads(data_structures.AllRemindersPerUser.parse_obj(reminder.attribute_values).json())
+            for reminder in all_reminder_details
+        ]
+    except ValidationError as error:
+        traceback.print_exc()
+        # This is a hack to get the error message string in pydantic
+        error_message = str(error.raw_errors[0].exc)
+        return Response(
+            body=json.dumps(
+                {
+                    "message": "Could not retrieve all reminders!!",
+                    "error": error_message,
+                },
+            ),
+            status_code=400,
+            headers={"Content-Type": "application/json"},
+        )
+    except Exception as error:
+        traceback.print_exc()
+        return Response(
+            body=json.dumps(
+                {"message": "Could not retrieve all reminders!!", "error": str(error)},
+            ),
+            status_code=400,
+            headers={"Content-Type": "application/json"},
+        )
