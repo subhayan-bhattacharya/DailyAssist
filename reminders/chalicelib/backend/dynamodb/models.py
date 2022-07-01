@@ -26,7 +26,7 @@ class Reminders(Model):
     """Model class for the Reminders table."""
 
     # Information on global secondary index for the table
-    # user_id (hash key) + reminder_id+reminder_title(sort key)
+    # user_id (hash key) + reminder_title(sort key)
     class Meta:
         table_name = "Reminders"
         region = "eu-central-1"
@@ -36,8 +36,7 @@ class Reminders(Model):
     reminder_title = UnicodeAttribute()
     reminder_tags = UnicodeSetAttribute()
     reminder_description = UnicodeAttribute()
-    reminder_frequency = UnicodeAttribute(default="Only once")
-    reminder_tasks = UnicodeSetAttribute(default=set())
+    reminder_frequency = UnicodeAttribute(default="once")
     reminder_expiration_date_time = UTCDateTimeAttribute(null=True)
     next_reminder_date_time = UTCDateTimeAttribute(null=True)
     reminder_creation_time = UTCDateTimeAttribute()

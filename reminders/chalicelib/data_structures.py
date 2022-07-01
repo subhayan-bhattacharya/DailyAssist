@@ -119,6 +119,10 @@ class ReminderDetailsFromRequest(pydantic.BaseModel):
     should_expire: bool
     reminder_expiration_date_time: Optional[datetime.datetime]
     next_reminder_date_time: Optional[datetime.datetime]
+    # The below 2 attributes are going to be sent in the request
+    # in the case when a reminder needs to be shared with someone
+    user_name: Optional[str]
+    reminder_id: Optional[str]
 
     @pydantic.validator("next_reminder_date_time", pre=True, allow_reuse=True)
     def _datetime_validator_next_reminder_date_time(
@@ -187,7 +191,7 @@ class ReminderDetailsFromRequest(pydantic.BaseModel):
         return values
 
 
-class NewReminder(pydantic.BaseModel):
+class SingleReminder(pydantic.BaseModel):
     """Model for a new reminder."""
 
     reminder_id: str
