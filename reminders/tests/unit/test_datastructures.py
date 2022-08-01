@@ -153,7 +153,9 @@ class TestReminderDetailsFromRequest:
             == next_reminder_date_time_in_str
         )
 
-    def test_for_a_reminder_frequency_of_yearly_the_next_reminder_cannot_be_more_than_expiration(self):
+    def test_for_a_reminder_frequency_of_yearly_the_next_reminder_cannot_be_more_than_expiration(
+        self,
+    ):
         """For a yearly frequency of reminder the next reminder cannot be more than the given expiration."""
         with pytest.raises(pydantic.error_wrappers.ValidationError):
             data_structures.ReminderDetailsFromRequest.parse_obj(

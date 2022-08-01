@@ -13,6 +13,7 @@ pydantic = "^1.9.0"
 chalice = "^1.26.6"
 pytest = "^7.1.2"
 lovely-pytest-docker = "^0.3.0"
+boto3 = "^1.24.42"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
