@@ -104,30 +104,24 @@ class TestReminderDetailsFromRequest:
     @pytest.mark.parametrize(
         "frequency, reminder_expiration_date_time_str, next_reminder_date_time_in_str",
         [
-            ("once", "11/08/23 10:00", "10/08/23 10:00"),
+            ("once", "11/08/23 10:00", "10/08/23"),
             (
                 "daily",
                 "11/08/23 10:00",
                 # If the reminder frequency is daily then the next reminder is 1 day from today
-                datetime.strftime(
-                    datetime.now() + relativedelta(days=1), "%d/%m/%y %H:%M"
-                ),
+                datetime.strftime(datetime.now() + relativedelta(days=1), "%d/%m/%y"),
             ),
             (
                 "monthly",
                 "11/08/23 10:00",
                 # If the reminder frequency is monthly then the next reminder is 1 month from today
-                datetime.strftime(
-                    datetime.now() + relativedelta(months=1), "%d/%m/%y %H:%M"
-                ),
+                datetime.strftime(datetime.now() + relativedelta(months=1), "%d/%m/%y"),
             ),
             (
                 "yearly",
                 "11/08/23 10:00",
                 # If the reminder frequency is monthly then the next reminder is 1 month from today
-                datetime.strftime(
-                    datetime.now() + relativedelta(years=1), "%d/%m/%y %H:%M"
-                ),
+                datetime.strftime(datetime.now() + relativedelta(years=1), "%d/%m/%y"),
             ),
         ],
     )
@@ -149,7 +143,7 @@ class TestReminderDetailsFromRequest:
             }
         )
         assert (
-            datetime.strftime(reminder.next_reminder_date_time, "%d/%m/%y %H:%M")
+            datetime.strftime(reminder.next_reminder_date_time, "%d/%m/%y")
             == next_reminder_date_time_in_str
         )
 
