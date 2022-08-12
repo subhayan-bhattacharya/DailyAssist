@@ -2,15 +2,18 @@
 
 import os
 import sys
+from datetime import datetime
 
 import boto3
 import pytest
+from dateutil.relativedelta import relativedelta
 
 project_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 sys.path.insert(0, project_root)
 
 from chalicelib.backend.dynamodb import models
+from chalicelib.data_structures import SingleReminder
 
 
 @pytest.fixture(scope="session")
@@ -81,3 +84,23 @@ def reminders_model(docker_app):
     models.Reminders.Meta.host = docker_app
     models.Reminders.Meta.aws_access_key_id = "something"
     models.Reminders.Meta.aws_secret_access_key = "anything"
+
+
+@pytest.fixture()
+def new_reminder():
+    def _new_reminder(reminder_id: str, reminder_title: str, user_id: str):
+        """Create a new reminder."""
+        return SingleReminder(
+            reminder_id=reminder_id,
+            user_id=user_id,
+            reminder_title=reminder_title,
+            reminder_description="Test reminder",
+            reminder_tags=["Test"],
+            reminder_frequency="once",
+            should_expire=True,
+            reminder_expiration_date_time=datetime.now() + relativedelta(months=1),
+            next_reminder_date_time=datetime.now() + relativedelta(days=20),
+            reminder_creation_time=datetime.now(),
+        )
+
+    return _new_reminder

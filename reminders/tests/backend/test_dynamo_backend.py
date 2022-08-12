@@ -3,28 +3,7 @@ from datetime import datetime
 import pytest
 from dateutil.relativedelta import relativedelta
 
-from chalicelib.backend.dynamodb import dynamo_backend, models
-from chalicelib.data_structures import SingleReminder
-
-
-@pytest.fixture()
-def new_reminder():
-    def _new_reminder(reminder_id: str, reminder_title: str, user_id: str):
-        """Create a new reminder."""
-        return SingleReminder(
-            reminder_id=reminder_id,
-            user_id=user_id,
-            reminder_title=reminder_title,
-            reminder_description="Test reminder",
-            reminder_tags=["Test"],
-            reminder_frequency="once",
-            should_expire=True,
-            reminder_expiration_date_time=datetime.now() + relativedelta(months=1),
-            next_reminder_date_time=datetime.now() + relativedelta(days=20),
-            reminder_creation_time=datetime.now(),
-        )
-
-    return _new_reminder
+from chalicelib.backend.dynamodb import dynamo_backend
 
 
 def test_create_single_reminder(reminders, reminders_model, new_reminder):
