@@ -1,9 +1,11 @@
 """Tests for the data structures in the reminders project."""
-import pytest
-import chalicelib.data_structures as data_structures
-import pydantic
 from datetime import datetime
+
+import pydantic
+import pytest
 from dateutil.relativedelta import relativedelta
+
+import chalicelib.data_structures as data_structures
 
 
 class TestReminderDetailsFromRequest:
@@ -119,8 +121,8 @@ class TestReminderDetailsFromRequest:
             ),
             (
                 "yearly",
-                "11/08/23 10:00",
-                # If the reminder frequency is monthly then the next reminder is 1 month from today
+                f"11/08/30 10:00",
+                # If the reminder frequency is yearly then the next reminder is 1 year from today
                 datetime.strftime(datetime.now() + relativedelta(years=1), "%d/%m/%y"),
             ),
         ],
