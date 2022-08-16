@@ -40,10 +40,10 @@ def create_event():
             "headers": {
                 "Content-Type": content_type,
             },
+            "body": body,
             "pathParameters": path,
             "queryStringParameters": {},
             "multiValueQueryStringParameters": {},
-            "body": body,
             "stageVariables": {},
         }
 
@@ -145,3 +145,44 @@ def test_share_a_reminder(
     assert (
         reminder_from_db_user_2[0].reminder_id == reminder_from_db_user_1[0].reminder_id
     )
+
+
+def test_view_list_of_all_reminders_for_a_user(
+    reminders_model, reminders, new_reminder, create_event
+):
+    """Test the function get_all_reminders_for_a_user."""
+    # Create a couple of dummy reminders
+    reminder_1 = new_reminder(
+        reminder_id="abc",
+        user_id="test_user_1",
+        reminder_title="Dummy reminder 1",
+    )
+    dynamo_backend.DynamoBackend.create_a_new_reminder(reminder_1)
+    reminder_2 = new_reminder(
+        reminder_id="def",
+        user_id="test_user_1",
+        reminder_title="Dummy reminder 2",
+    )
+    dynamo_backend.DynamoBackend.create_a_new_reminder(reminder_2)
+
+    event = create_event(
+        uri="/reminders",
+        method="GET",
+        path={},
+        body=None,
+        request_context={
+            "authorizer": {
+                "claims": {
+                    "cognito:username": "test_user_1",
+                    "email": "test_user_1@email.com",
+                }
+            }
+        },
+    )
+    response = app(event, context=None)
+    assert response["statusCode"] == 200
+    returned_body = json.loads(response["body"])
+    assert isinstance(returned_body, list)
+    assert len(returned_body) == 2
+    for reminder in returned_body:
+        assert reminder["reminder_id"] in ["abc", "def"]
