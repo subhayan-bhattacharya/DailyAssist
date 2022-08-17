@@ -20,6 +20,59 @@ authorizer = CognitoUserPoolAuthorizer(
 )
 
 
+def get_reminder_description_for_reminders_for_today(user):
+    # Get the reminder description from the database
+    all_reminders_for_a_user = DynamoBackend.get_all_reminders_for_a_user(
+        user_id=user
+    )
+    descriptions = []
+    for reminder in all_reminders_for_a_user:
+        next_reminder_details = DynamoBackend.get_a_reminder_for_a_user(
+            reminder.reminder_id, user
+        )
+        next_reminder_date_time = next_reminder_details[0].next_reminder_date_time
+        next_reminder_date = datetime.datetime.strftime(
+            next_reminder_date_time, "%d/%m/%y"
+        )
+        todays_date = datetime.datetime.strftime(
+            datetime.datetime.now(), "%d/%m/%y"
+        )
+        if todays_date == next_reminder_date:
+                descriptions.append(next_reminder_details.reminder_description)
+    return descriptions
+
+
+def get_user_email_from_pool(user, user_pool_id):
+    """Get the user email."""
+
+
+# This lambda function is temporary , it will be removed when we have the
+# mobile application in place.
+@app.lambda_function(name="queryAndSendReminders")
+def query_and_send_reminders(event, context):
+    """Query Dynamodb table and send reminders if has to be reminded today."""
+    # At the moment the lambda function needs to have the users for whom
+    # we need to check the reminders, this is done in the interest of cost
+    # otherwise we have to do a scan on the table
+    users = event.get("users")
+    user_pool_id = event.get("user_pool_id")
+    if users is None:
+        raise ValueError(
+            f"The data for the lambda function needs to accept a list of users!"
+        )
+    reminders_for_which_we_need_to_remind = {"details": {}}
+    for user in users:
+        # Get the details of the user email from cognito
+        user_email = get_user_email_from_pool(user, user_pool_id)
+        # Get the reminder description from the database
+        descriptions = get_reminder_description_for_reminders_for_today(user)
+        reminders_for_which_we_need_to_remind["details"][user] = {
+            "email": user_email,
+            "descriptions": descriptions
+        }
+    return reminders_for_which_we_need_to_remind
+
+
 @app.route(
     "/reminders",
     methods=["POST"],
@@ -78,12 +131,12 @@ def create_a_new_reminder():
         # username and reminder_id.
         new_reminder = data_structures.SingleReminder.parse_obj(
             {
+                **reminder_details_as_dict,
                 **{
                     "reminder_id": reminder_id,
                     "reminder_creation_time": datetime.datetime.now(),
                     "user_id": username,
                 },
-                **reminder_details_as_dict,
             }
         )
 
