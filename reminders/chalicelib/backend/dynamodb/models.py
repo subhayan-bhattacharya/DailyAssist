@@ -1,13 +1,9 @@
 """Module having the models for pynamodb."""
 
-from pynamodb.models import Model
-from pynamodb.attributes import (
-    UnicodeAttribute,
-    UTCDateTimeAttribute,
-    UnicodeSetAttribute,
-    BooleanAttribute,
-)
+from pynamodb.attributes import (BooleanAttribute, UnicodeAttribute,
+                                 UnicodeSetAttribute, UTCDateTimeAttribute)
 from pynamodb.indexes import GlobalSecondaryIndex, IncludeProjection
+from pynamodb.models import Model
 
 
 class UserIdReminderTitleIndex(GlobalSecondaryIndex):

@@ -5,6 +5,7 @@ import os
 import traceback
 import uuid
 
+import boto3
 from chalice import Chalice, CognitoUserPoolAuthorizer, Response
 from pydantic import ValidationError
 
@@ -22,9 +23,7 @@ authorizer = CognitoUserPoolAuthorizer(
 
 def get_reminder_description_for_reminders_for_today(user):
     # Get the reminder description from the database
-    all_reminders_for_a_user = DynamoBackend.get_all_reminders_for_a_user(
-        user_id=user
-    )
+    all_reminders_for_a_user = DynamoBackend.get_all_reminders_for_a_user(user_id=user)
     descriptions = []
     for reminder in all_reminders_for_a_user:
         next_reminder_details = DynamoBackend.get_a_reminder_for_a_user(
@@ -34,20 +33,32 @@ def get_reminder_description_for_reminders_for_today(user):
         next_reminder_date = datetime.datetime.strftime(
             next_reminder_date_time, "%d/%m/%y"
         )
-        todays_date = datetime.datetime.strftime(
-            datetime.datetime.now(), "%d/%m/%y"
-        )
+        todays_date = datetime.datetime.strftime(datetime.datetime.now(), "%d/%m/%y")
         if todays_date == next_reminder_date:
-                descriptions.append(next_reminder_details.reminder_description)
+            descriptions.append(
+                f"{next_reminder_details[0].reminder_description}, Reminder expiration: "
+                f"{datetime.datetime.strftime(next_reminder_details[0].reminder_expiration_date_time, '%d %B, %Y')}"
+            )
+
     return descriptions
 
 
 def get_user_email_from_pool(user, user_pool_id):
     """Get the user email."""
+    session = boto3.session.Session()
+    client = session.client("cognito-idp")
+    response = client.admin_get_user(UserPoolId=user_pool_id, Username=user)
+    for attributes in response["UserAttributes"]:
+        if attributes["Name"] == "email":
+            return attributes["Value"]
 
 
-# This lambda function is temporary , it will be removed when we have the
-# mobile application in place.
+def _send_reminder_message(message_arn, message):
+    """Send a reminder email to the email address."""
+    client = boto3.client("sns")
+    return client.publish(TopicArn=message_arn, Message=message)
+
+
 @app.lambda_function(name="queryAndSendReminders")
 def query_and_send_reminders(event, context):
     """Query Dynamodb table and send reminders if has to be reminded today."""
@@ -56,6 +67,7 @@ def query_and_send_reminders(event, context):
     # otherwise we have to do a scan on the table
     users = event.get("users")
     user_pool_id = event.get("user_pool_id")
+    message_arn = event.get("message_arn")
     if users is None:
         raise ValueError(
             f"The data for the lambda function needs to accept a list of users!"
@@ -66,10 +78,21 @@ def query_and_send_reminders(event, context):
         user_email = get_user_email_from_pool(user, user_pool_id)
         # Get the reminder description from the database
         descriptions = get_reminder_description_for_reminders_for_today(user)
-        reminders_for_which_we_need_to_remind["details"][user] = {
-            "email": user_email,
-            "descriptions": descriptions
-        }
+        reminders_for_which_we_need_to_remind["details"][user] = {"email": user_email}
+        # Send sns messages for all the users and for all the descriptions(which means
+        # that there are multiple reminders for that day
+        reminders_for_which_we_need_to_remind["details"][user]["notifications"] = []
+        for message_description in descriptions:
+            reminders_for_which_we_need_to_remind["details"][user][
+                "notifications"
+            ].append(
+                {
+                    "sns_response": _send_reminder_message(
+                        message_arn, message_description
+                    ),
+                    "message_body": message_description,
+                }
+            )
     return reminders_for_which_we_need_to_remind
 
 
