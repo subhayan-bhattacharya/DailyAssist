@@ -36,7 +36,7 @@ def get_reminder_description_for_reminders_for_today(user):
         todays_date = datetime.datetime.strftime(datetime.datetime.now(), "%d/%m/%y")
         if todays_date == next_reminder_date:
             descriptions.append(
-                f"{next_reminder_details[0].reminder_description}, Reminder expiration: "
+                f"{next_reminder_details[0].reminder_description} \n Reminder due date: "
                 f"{datetime.datetime.strftime(next_reminder_details[0].reminder_expiration_date_time, '%d %B, %Y')}"
             )
 
@@ -67,23 +67,26 @@ def query_and_send_reminders(event, context):
     # otherwise we have to do a scan on the table
     users = event.get("users")
     user_pool_id = event.get("user_pool_id")
-    message_arn = event.get("message_arn")
     if users is None:
         raise ValueError(
             f"The data for the lambda function needs to accept a list of users!"
         )
     reminders_for_which_we_need_to_remind = {"details": {}}
     for user in users:
+        username = user["username"]
         # Get the details of the user email from cognito
-        user_email = get_user_email_from_pool(user, user_pool_id)
+        user_email = get_user_email_from_pool(username, user_pool_id)
         # Get the reminder description from the database
-        descriptions = get_reminder_description_for_reminders_for_today(user)
-        reminders_for_which_we_need_to_remind["details"][user] = {"email": user_email}
+        descriptions = get_reminder_description_for_reminders_for_today(username)
+        reminders_for_which_we_need_to_remind["details"][username] = {
+            "email": user_email
+        }
         # Send sns messages for all the users and for all the descriptions(which means
         # that there are multiple reminders for that day
-        reminders_for_which_we_need_to_remind["details"][user]["notifications"] = []
+        reminders_for_which_we_need_to_remind["details"][username]["notifications"] = []
         for message_description in descriptions:
-            reminders_for_which_we_need_to_remind["details"][user][
+            message_arn = user["message_arn"]
+            reminders_for_which_we_need_to_remind["details"][username][
                 "notifications"
             ].append(
                 {
