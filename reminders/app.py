@@ -99,6 +99,20 @@ def query_and_send_reminders(event, context):
     return reminders_for_which_we_need_to_remind
 
 
+@app.lambda_function(name='deleteExpiredReminders')
+def delete_expired_reminders(event, context):
+    """
+    Deletes expired reminders.
+    Just like the previous function we need to have the users
+    for whom we like to do the deletion.
+    """
+    users = event.get("users")
+    if users is None:
+        raise ValueError(
+            f"The data for the lambda function needs to accept a list of users!"
+        )
+
+
 @app.route(
     "/reminders",
     methods=["POST"],

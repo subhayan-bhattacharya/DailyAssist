@@ -56,3 +56,7 @@ class DynamoBackend:
         return models.Reminders.view_index.query(
             user_id, models.Reminders.reminder_title == reminder_title
         )
+
+    @staticmethod
+    def delete_a_reminder(reminder_id: str):
+        """Deletes a reminder."""
