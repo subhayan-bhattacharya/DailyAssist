@@ -37,7 +37,7 @@ def get_reminder_description_for_reminders_for_today(user):
         if todays_date == next_reminder_date:
             descriptions.append(
                 f"{next_reminder_details[0].reminder_description} \n Reminder due date: "
-                f"{datetime.datetime.strftime(next_reminder_details[0].reminder_expiration_date_time, '%d %B, %Y')}"
+                f"{datetime.datetime.strftime(next_reminder_details[0].reminder_expiration_date_time, '%d %B, %Y %H:%M')}"
             )
 
     return descriptions
