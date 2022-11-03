@@ -99,7 +99,7 @@ def query_and_send_reminders(event, context):
     return reminders_for_which_we_need_to_remind
 
 
-@app.lambda_function(name='deleteExpiredReminders')
+@app.lambda_function(name="deleteExpiredReminders")
 def delete_expired_reminders(event, context):
     """
     Deletes expired reminders.
@@ -111,6 +111,32 @@ def delete_expired_reminders(event, context):
         raise ValueError(
             f"The data for the lambda function needs to accept a list of users!"
         )
+    details = {}
+    for user in users:
+        username = user["username"]
+        details[username] = {"deleted": [], "not_deleted": []}
+        reminders_for_user = DynamoBackend.get_all_reminders_for_a_user(
+            user_id=username
+        )
+        for reminder in reminders_for_user:
+            parsed_reminder = data_structures.AllRemindersPerUser.parse_obj(
+                reminder.attribute_values
+            )
+            if (
+                parsed_reminder.reminder_expiration_date_time.date()
+                < datetime.datetime.now().date()
+            ):
+                details[username]["deleted"].append(parsed_reminder.reminder_title)
+                DynamoBackend.delete_a_reminder(reminder_id=parsed_reminder.reminder_id)
+            else:
+                details[username]["not_deleted"].append(
+                    {
+                        "reminder_id": parsed_reminder.reminder_id,
+                        "reminder_title": parsed_reminder.reminder_title,
+                    }
+                )
+
+    return details
 
 
 @app.route(

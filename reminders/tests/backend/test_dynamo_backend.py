@@ -124,3 +124,23 @@ def test_get_a_reminder_gsi(reminders, reminders_model, new_reminder):
         assert datetime.strftime(
             reminder.reminder_expiration_date_time, "%d/%m/%y"
         ) == datetime.strftime(expected_reminder_expiration_date_time, "%d/%m/%y")
+
+
+def test_delete_a_reminder(reminders, reminders_model, new_reminder):
+    """Test delete a reminder."""
+    reminder_1 = new_reminder(
+        reminder_id="abc", user_id="test_user_1", reminder_title="Test reminder"
+    )
+    reminder_2 = new_reminder(reminder_id="def", user_id="test_user_1", reminder_title="Test reminder 2")
+    dynamo_backend.DynamoBackend.create_a_new_reminder(reminder_1)
+    dynamo_backend.DynamoBackend.create_a_new_reminder(reminder_2)
+    all_reminders_for_user_1 = (
+        dynamo_backend.DynamoBackend.get_all_reminders_for_a_user(user_id="test_user_1")
+    )
+    assert len(all_reminders_for_user_1) == 2
+    dynamo_backend.DynamoBackend.delete_a_reminder("abc")
+    all_reminders_for_user_1 = (
+        dynamo_backend.DynamoBackend.get_all_reminders_for_a_user(user_id="test_user_1")
+    )
+    assert len(all_reminders_for_user_1) == 1
+

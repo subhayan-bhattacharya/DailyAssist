@@ -60,3 +60,4 @@ class DynamoBackend:
     @staticmethod
     def delete_a_reminder(reminder_id: str):
         """Deletes a reminder."""
+        return list(models.Reminders.query(reminder_id))[0].delete()
