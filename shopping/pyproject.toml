@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "shopping"
+version = "0.1.0"
+description = "A sub project of Daily assist application helps in tracking items to buy for household"
+authors = ["Subhayan Bhattacharya <subhayan.aws@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+pydantic = "^1.10.2"
+peewee = "^3.15.3"
+
+[tool.poetry.dev-dependencies]
+chalice = "^1.27.3"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

@@ -1,3 +1,7 @@
 .chalice/deployments/
+.chalice/deployed/
 .chalice/venv/
 *pycache*
+tests/backend/docker/
+tests/docker/
+
