@@ -59,6 +59,40 @@ def _send_reminder_message(message_arn, message):
     return client.publish(TopicArn=message_arn, Message=message)
 
 
+def filter_sns_arn_by_user(username):
+    """This function goes through all the resource ARN for SNS and filters for the user."""
+    client = boto3.client("sns")
+    try:
+        # Call the list_topics API to get all SNS topics
+        topics_data = client.list_topics()
+        topics = topics_data["Topics"]
+
+        subscribers = []
+
+        relevant_topics = [
+            topic for topic in topics if username.capitalize() in topic["TopicArn"]
+        ]
+
+        # Iterate through each topic
+        for topic in relevant_topics:
+            # Get ARN of the topic
+            topic_arn = topic["TopicArn"]
+
+            # Call the list_subscriptions_by_topic API to get subscribers for the topic
+            subscriptions_data = client.list_subscriptions_by_topic(TopicArn=topic_arn)
+            subscriptions = subscriptions_data["Subscriptions"]
+
+            # Add subscribers for the topic to the result array
+            subscribers.append({"topicArn": topic_arn, "subscriptions": subscriptions})
+        print(f"Details of subscriptions for {username} are:")
+        print(subscribers)
+        # Return the result containing subscribers for all topics
+        return subscribers
+    except Exception as e:
+        raise ValueError(f"Could not filter through the subscriptions for {username}")
+
+
+
 @app.lambda_function(name="queryAndSendReminders")
 def query_and_send_reminders(event, context):
     """Query Dynamodb table and send reminders if has to be reminded today."""
@@ -207,6 +241,16 @@ def create_a_new_reminder():
         )
 
         DynamoBackend.create_a_new_reminder(new_reminder=new_reminder)
+        # We also want to send a confirmation message to the user
+        # when the reminder is created.
+        user_subscriptions = filter_sns_arn_by_user(username)
+        user_readable_expiration_date = (
+            reminder_details.reminder_expiration_date_time.strftime("%d/%m/%y %H:%M")
+        )
+        message = f"New reminder added for date : {user_readable_expiration_date}.Reminder Details : {reminder_details.reminder_description}"
+        for subscriber in user_subscriptions:
+            _send_reminder_message(subscriber["topicArn"], message)
+
     except ValidationError as error:
         traceback.print_exc()
         # This is a hack to get the error message string in pydantic
