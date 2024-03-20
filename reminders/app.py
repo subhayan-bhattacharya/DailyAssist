@@ -92,7 +92,6 @@ def filter_sns_arn_by_user(username):
         raise ValueError(f"Could not filter through the subscriptions for {username}")
 
 
-
 @app.lambda_function(name="queryAndSendReminders")
 def query_and_send_reminders(event, context):
     """Query Dynamodb table and send reminders if has to be reminded today."""
@@ -297,14 +296,16 @@ def get_all_reminders_for_a_user():
         all_reminder_details = DynamoBackend.get_all_reminders_for_a_user(
             user_id=user_details.user_name
         )
-        return [
-            json.loads(
-                data_structures.AllRemindersPerUser.parse_obj(
-                    reminder.attribute_values
-                ).json()
-            )
+        all_reminders_per_user = [
+            data_structures.AllRemindersPerUser.parse_obj(reminder.attribute_values)
             for reminder in all_reminder_details
         ]
+        sorted_reminders_per_user = sorted(
+            all_reminders_per_user,
+            key=lambda x: x.reminder_expiration_date_time
+        )
+
+        return [json.loads(reminder.json()) for reminder in sorted_reminders_per_user]
     except ValidationError as error:
         traceback.print_exc()
         # This is a hack to get the error message string in pydantic
