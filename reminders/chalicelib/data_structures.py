@@ -25,7 +25,7 @@ class AllRemindersPerUser(pydantic.BaseModel):
 
     class Config:
         json_encoders = {
-            datetime.datetime: lambda v: v.strftime("%m/%d/%Y, %H:%M:%S"),
+            datetime.datetime: lambda v: v.strftime("%d %B %Y, %I:%M %p").replace(" 0", " "),
         }
 
 
