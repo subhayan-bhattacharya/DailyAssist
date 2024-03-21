@@ -1,4 +1,5 @@
 import datetime
+import itertools
 import json
 import logging
 import os
@@ -281,6 +282,44 @@ def create_a_new_reminder():
 
 
 @app.route(
+    "/tags",
+    methods=["GET"],
+    authorizer=authorizer,
+)
+def get_all_tags_for_a_user():
+    """Gets the list of all reminder tags currenty in the database."""
+    try:
+        request_context = app.current_request.context
+        user_details = data_structures.UserDetails(
+            user_name=request_context["authorizer"]["claims"]["cognito:username"],
+            user_email=request_context["authorizer"]["claims"]["email"],
+        )
+        all_reminder_details = DynamoBackend.get_all_reminders_for_a_user(
+            user_id=user_details.user_name
+        )
+        reminder_ids = [reminder.reminder_id for reminder in all_reminder_details]
+        tags = []
+        # This is a workaround because the global secondary index of the table
+        # does not project the reminder_tags column
+        for reminder_id in reminder_ids:
+            reminder_details = DynamoBackend.get_a_reminder_for_a_user(
+                reminder_id=reminder_id, user_name=user_details.user_name
+            )
+            tags.append(list(reminder_details[0].reminder_tags)[0])
+        return list(set(tags))
+
+    except Exception as error:
+        traceback.print_exc()
+        return Response(
+            body=json.dumps(
+                {"message": "Could not retrieve all tags!!", "error": str(error)},
+            ),
+            status_code=400,
+            headers={"Content-Type": "application/json"},
+        )
+
+
+@app.route(
     "/reminders",
     methods=["GET"],
     authorizer=authorizer,
@@ -301,8 +340,7 @@ def get_all_reminders_for_a_user():
             for reminder in all_reminder_details
         ]
         sorted_reminders_per_user = sorted(
-            all_reminders_per_user,
-            key=lambda x: x.reminder_expiration_date_time
+            all_reminders_per_user, key=lambda x: x.reminder_expiration_date_time
         )
 
         return [json.loads(reminder.json()) for reminder in sorted_reminders_per_user]
