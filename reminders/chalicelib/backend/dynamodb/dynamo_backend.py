@@ -17,6 +17,11 @@ class DynamoBackend:
     def get_all_reminders_for_a_user(user_id: str) -> List[models.Reminders]:
         """Gets all reminders for a user."""
         return list(models.Reminders.view_index.query(user_id))
+    
+    @staticmethod
+    def get_all_reminders_for_a_user_by_tag(user_id: str, tag: str) -> List[models.Reminders]:
+        """Gets the reminders for a user but only for a tag."""
+        return list(models.Reminders.view_index.query(user_id, filter_condition=models.Reminders.reminder_tags.contains(tag)))
 
     @staticmethod
     def update_a_reminder(reminder_id: str, updated_reminder: Dict[str, Any]) -> None:

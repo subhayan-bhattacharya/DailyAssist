@@ -10,8 +10,8 @@ class UserIdReminderTitleIndex(GlobalSecondaryIndex):
     """Global secondary index for table Reminders."""
 
     class Meta:
-        index_name = "UserIdReminderTitleGsi"
-        projection = IncludeProjection(["reminder_expiration_date_time", "reminder_id"])
+        index_name = "UserIdReminderTitleGsi2"
+        projection = IncludeProjection(["reminder_expiration_date_time", "reminder_id", "reminder_tags"])
 
     # Global secondary index hash and range keys
     user_id = UnicodeAttribute(hash_key=True)

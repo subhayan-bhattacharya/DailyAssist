@@ -297,15 +297,9 @@ def get_all_tags_for_a_user():
         all_reminder_details = DynamoBackend.get_all_reminders_for_a_user(
             user_id=user_details.user_name
         )
-        reminder_ids = [reminder.reminder_id for reminder in all_reminder_details]
         tags = []
-        # This is a workaround because the global secondary index of the table
-        # does not project the reminder_tags column
-        for reminder_id in reminder_ids:
-            reminder_details = DynamoBackend.get_a_reminder_for_a_user(
-                reminder_id=reminder_id, user_name=user_details.user_name
-            )
-            tags.append(list(reminder_details[0].reminder_tags)[0])
+        for reminder in all_reminder_details:
+            tags.append(list(reminder.reminder_tags)[0])
         return list(set(tags))
 
     except Exception as error:
@@ -332,9 +326,18 @@ def get_all_reminders_for_a_user():
             user_name=request_context["authorizer"]["claims"]["cognito:username"],
             user_email=request_context["authorizer"]["claims"]["email"],
         )
-        all_reminder_details = DynamoBackend.get_all_reminders_for_a_user(
-            user_id=user_details.user_name
-        )
+        tag_name = app.current_request.query_params.get('tag')
+        print(f"Tag name provided is {tag_name}")
+        if tag_name is not None:
+            all_reminder_details = DynamoBackend.get_all_reminders_for_a_user_by_tag(
+                user_id=user_details.user_name,
+                tag=tag_name
+            )
+        else:
+            print("No tag provided... getting all reminders for the user...")
+            all_reminder_details = DynamoBackend.get_all_reminders_for_a_user(
+                user_id=user_details.user_name
+            )
         all_reminders_per_user = [
             data_structures.AllRemindersPerUser.parse_obj(reminder.attribute_values)
             for reminder in all_reminder_details
