@@ -421,6 +421,53 @@ def view_details_of_a_reminder_for_a_user(reminder_id: str):
         )
 
 
+@app.route("/reminders/{reminder_id}", methods=["DELETE"], authorizer=authorizer)
+def delete_a_reminder(reminder_id: str):
+    """Delete a reminder."""
+    try:
+        request_context = app.current_request.context
+        user_details = data_structures.UserDetails(
+            user_name=request_context["authorizer"]["claims"]["cognito:username"],
+            user_email=request_context["authorizer"]["claims"]["email"],
+        )
+        username = user_details.user_name
+        single_reminder_details = DynamoBackend.get_a_reminder_for_a_user(
+            reminder_id=reminder_id, user_name=user_details.user_name
+        )
+        if len(single_reminder_details) == 0:
+            raise ValueError(
+                f"No reminder with reminder id: {reminder_id} exists for {username}"
+            )
+        DynamoBackend.delete_a_reminder(reminder_id=reminder_id)
+        # We also want to send a confirmation message to the user
+        # when the reminder is deleted.
+        # However there is a catch
+        user_subscriptions = filter_sns_arn_by_user(username)
+        user_readable_expiration_date = single_reminder_details[
+            0
+        ].reminder_expiration_date_time.strftime("%d/%m/%y %H:%M")
+        message = f"Reminder deleted ! Details : {single_reminder_details[0].reminder_description}.Expiration date : {user_readable_expiration_date}"
+        for subscriber in user_subscriptions:
+            _send_reminder_message(subscriber["topicArn"], message)
+    except Exception as error:
+        traceback.print_exc()
+        return Response(
+            body=json.dumps(
+                {
+                    "message": f"Could not delete reminder {reminder_id}!!",
+                    "error": str(error),
+                },
+            ),
+            status_code=400,
+            headers={"Content-Type": "application/json"},
+        )
+    return Response(
+        body=json.dumps({"message": "Reminder successfully deleted!"}),
+        status_code=200,
+        headers={"Content-Type": "application/json"},
+    )
+
+
 @app.route("/reminders/{reminder_id}", methods=["PUT"], authorizer=authorizer)
 def update_a_reminder(reminder_id: str):
     """update a reminder with the given reminder id."""

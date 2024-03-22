@@ -17,11 +17,17 @@ class DynamoBackend:
     def get_all_reminders_for_a_user(user_id: str) -> List[models.Reminders]:
         """Gets all reminders for a user."""
         return list(models.Reminders.view_index.query(user_id))
-    
+
     @staticmethod
-    def get_all_reminders_for_a_user_by_tag(user_id: str, tag: str) -> List[models.Reminders]:
+    def get_all_reminders_for_a_user_by_tag(
+        user_id: str, tag: str
+    ) -> List[models.Reminders]:
         """Gets the reminders for a user but only for a tag."""
-        return list(models.Reminders.view_index.query(user_id, filter_condition=models.Reminders.reminder_tags.contains(tag)))
+        return list(
+            models.Reminders.view_index.query(
+                user_id, filter_condition=models.Reminders.reminder_tags.contains(tag)
+            )
+        )
 
     @staticmethod
     def update_a_reminder(reminder_id: str, updated_reminder: Dict[str, Any]) -> None:
@@ -31,6 +37,7 @@ class DynamoBackend:
             # since if a reminder has been shared with someone
             # it will have more than 1 entries in the table
             # in which only the user id(range key) is different
+            # THIS DOES NOT WORK...CHECK NOTES
             reminder.reminder_title = updated_reminder.get("reminder_title")
             reminder.reminder_description = updated_reminder.get("reminder_description")
             reminder.reminder_tags = updated_reminder.get("reminder_tags")
