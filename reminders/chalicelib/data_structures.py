@@ -25,7 +25,9 @@ class AllRemindersPerUser(pydantic.BaseModel):
 
     class Config:
         json_encoders = {
-            datetime.datetime: lambda v: v.strftime("%d %B %Y, %I:%M %p").replace(" 0", " "),
+            datetime.datetime: lambda v: v.strftime("%d %B %Y, %I:%M %p").replace(
+                " 0", " "
+            ),
         }
 
 
@@ -128,7 +130,17 @@ class ReminderDetailsFromRequest(pydantic.BaseModel):
     def _datetime_validator_next_reminder_date_time(
         cls, value: str
     ) -> datetime.datetime:
-        next_reminder_date_time = datetime.datetime.strptime(value, "%d/%m/%y %H:%M")
+        try:
+            next_reminder_date_time = datetime.datetime.strptime(
+                value, "%d/%m/%y %H:%M"
+            )
+        except ValueError as error:
+            print(
+                f"Parsing of next reminder date encountered error : {error}...trying with a different format..."
+            )
+            next_reminder_date_time = datetime.datetime.strptime(
+                value, "%d %B %Y, %I:%M %p"
+            )
         if next_reminder_date_time < datetime.datetime.now():
             raise ValueError(
                 "The next reminder date and time should be in the future !!"
@@ -139,9 +151,17 @@ class ReminderDetailsFromRequest(pydantic.BaseModel):
     def _datetime_validator_reminder_expiration_date_time(
         cls, value: str
     ) -> datetime.datetime:
-        reminder_expiration_date_time = datetime.datetime.strptime(
-            value, "%d/%m/%y %H:%M"
-        )
+        try:
+            reminder_expiration_date_time = datetime.datetime.strptime(
+                value, "%d/%m/%y %H:%M"
+            )
+        except ValueError as error:
+            print(
+                f"Parsing of reminder expiration date encountered error : {error}...trying with a different format..."
+            )
+            reminder_expiration_date_time = datetime.datetime.strptime(
+                value, "%d %B %Y, %I:%M %p"
+            )
         if reminder_expiration_date_time < datetime.datetime.now():
             raise ValueError(
                 "The reminder expiration date and time should be in the future !!"
@@ -204,3 +224,10 @@ class SingleReminder(pydantic.BaseModel):
     reminder_expiration_date_time: Optional[datetime.datetime]
     next_reminder_date_time: datetime.datetime
     reminder_creation_time: datetime.datetime
+
+    class Config:
+        json_encoders = {
+            datetime.datetime: lambda v: v.strftime("%d %B %Y, %I:%M %p").replace(
+                " 0", " "
+            ),
+        }

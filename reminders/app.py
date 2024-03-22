@@ -326,13 +326,15 @@ def get_all_reminders_for_a_user():
             user_name=request_context["authorizer"]["claims"]["cognito:username"],
             user_email=request_context["authorizer"]["claims"]["email"],
         )
-        tag_name = app.current_request.query_params.get('tag')
-        print(f"Tag name provided is {tag_name}")
-        if tag_name is not None:
-            all_reminder_details = DynamoBackend.get_all_reminders_for_a_user_by_tag(
-                user_id=user_details.user_name,
-                tag=tag_name
-            )
+        if app.current_request.query_params is not None:
+            tag_name = app.current_request.query_params.get("tag")
+            print(f"Tag name provided is {tag_name}")
+            if tag_name is not None:
+                all_reminder_details = (
+                    DynamoBackend.get_all_reminders_for_a_user_by_tag(
+                        user_id=user_details.user_name, tag=tag_name
+                    )
+                )
         else:
             print("No tag provided... getting all reminders for the user...")
             all_reminder_details = DynamoBackend.get_all_reminders_for_a_user(
@@ -423,6 +425,12 @@ def view_details_of_a_reminder_for_a_user(reminder_id: str):
 def update_a_reminder(reminder_id: str):
     """update a reminder with the given reminder id."""
     try:
+        request_context = app.current_request.context
+        user_details = data_structures.UserDetails(
+            user_name=request_context["authorizer"]["claims"]["cognito:username"],
+            user_email=request_context["authorizer"]["claims"]["email"],
+        )
+        username = user_details.user_name
         request_body = json.loads(app.current_request.raw_body.decode())
         request_body["reminder_frequency"] = data_structures.ReminderFrequency[
             request_body["reminder_frequency"]
@@ -437,6 +445,16 @@ def update_a_reminder(reminder_id: str):
         DynamoBackend.update_a_reminder(
             reminder_id=reminder_id, updated_reminder=reminder_details_as_dict
         )
+        # We also want to send a confirmation message to the user
+        # when the reminder is updated.
+        # However there is a catch
+        user_subscriptions = filter_sns_arn_by_user(username)
+        user_readable_expiration_date = (
+            reminder_details.reminder_expiration_date_time.strftime("%d/%m/%y %H:%M")
+        )
+        message = f"Reminder updated ! Reminder new details : {reminder_details.reminder_description}.Expiration date : {user_readable_expiration_date}"
+        for subscriber in user_subscriptions:
+            _send_reminder_message(subscriber["topicArn"], message)
     except ValidationError as error:
         traceback.print_exc()
         # This is a hack to get the error message string in pydantic
