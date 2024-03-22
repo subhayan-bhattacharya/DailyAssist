@@ -173,6 +173,59 @@ def delete_expired_reminders(event, context):
     return details
 
 
+@app.route("/reminders/{reminder_id}", methods=["POST"], authorizer=authorizer)
+def share_a_reminder_with_someone(reminder_id: str):
+    """Try to share a reminder with someone."""
+    try:
+        request_context = app.current_request.context
+        original_user = request_context["authorizer"]["claims"]["cognito:username"]
+        request_body = json.loads(app.current_request.raw_body.decode())
+        username_to_be_shared_with = request_body.get("username")
+        if username_to_be_shared_with is None:
+            return Response(
+                body=json.dumps(
+                    {
+                        "message": "Could not share the reminder!!",
+                        "error": "The message body needs to contain the username with whom the reminder needs to be shared!",
+                    },
+                ),
+                status_code=400,
+                headers={"Content-Type": "application/json"},
+            )
+
+        existing_reminder = data_structures.SingleReminder.parse_obj(
+            DynamoBackend.get_a_reminder_for_a_user(
+                reminder_id=reminder_id, user_name=original_user
+            )[0].attribute_values
+        )
+        existing_reminder.user_id = username_to_be_shared_with
+        DynamoBackend.create_a_new_reminder(existing_reminder)
+        # We also want to send a confirmation message to the user
+        # when the reminder is created.
+        user_subscriptions = filter_sns_arn_by_user(original_user)
+        user_readable_expiration_date = (
+            existing_reminder.reminder_expiration_date_time.strftime("%d/%m/%y %H:%M")
+        )
+        message = f"Reminder shared with user: {username_to_be_shared_with}.Reminder Details : {existing_reminder.reminder_description}. Expiration date : existing_reminder"
+        for subscriber in user_subscriptions:
+            _send_reminder_message(subscriber["topicArn"], message)
+
+    except Exception as error:
+        traceback.print_exc()
+        return Response(
+            body=json.dumps(
+                {"message": "Could not share the reminder!!", "error": str(error)},
+            ),
+            status_code=400,
+            headers={"Content-Type": "application/json"},
+        )
+    return Response(
+        body=json.dumps({"message": "Reminder successfully shared!"}),
+        status_code=200,
+        headers={"Content-Type": "application/json"},
+    )
+
+
 @app.route(
     "/reminders",
     methods=["POST"],
@@ -192,18 +245,11 @@ def create_a_new_reminder():
             request_body
         )
 
-        if reminder_details.user_name is None:
-            # this basically means that the user is creating a new reminder
-            user_details = data_structures.UserDetails(
-                user_name=request_context["authorizer"]["claims"]["cognito:username"],
-                user_email=request_context["authorizer"]["claims"]["email"],
-            )
-            username = user_details.user_name
-        else:
-            # in this case this means that a previously created reminder is being shared
-            # with someone else
-            # this should entail creating a new reminder with same reminder details but different user name
-            username = reminder_details.user_name
+        user_details = data_structures.UserDetails(
+            user_name=request_context["authorizer"]["claims"]["cognito:username"],
+            user_email=request_context["authorizer"]["claims"]["email"],
+        )
+        username = user_details.user_name
         # Check if the user has already created a similar entry by querying the GSI
         reminders_present = list(
             DynamoBackend.get_a_reminder_gsi(username, reminder_details.reminder_title)
@@ -215,20 +261,13 @@ def create_a_new_reminder():
                 f" for user {username}"
             )
 
-        if reminder_details.reminder_id is None:
-            reminder_id = str(uuid.uuid1())
-        else:
-            # Case when this happens is when a reminder is shared with someone
-            reminder_id = reminder_details.reminder_id
+        reminder_id = str(uuid.uuid1())
 
         reminder_details_as_dict = reminder_details.dict()
         reminder_details_as_dict["reminder_frequency"] = reminder_details_as_dict[
             "reminder_frequency"
         ].value
 
-        # in the case when a reminder is shared with someone
-        # the reminder_details_as_dict would contain the value of
-        # username and reminder_id.
         new_reminder = data_structures.SingleReminder.parse_obj(
             {
                 **reminder_details_as_dict,
