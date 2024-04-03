@@ -206,7 +206,7 @@ def share_a_reminder_with_someone(reminder_id: str):
         user_readable_expiration_date = (
             existing_reminder.reminder_expiration_date_time.strftime("%d/%m/%y %H:%M")
         )
-        message = f"Reminder shared with user: {username_to_be_shared_with}.Reminder Details : {existing_reminder.reminder_description}. Expiration date : existing_reminder"
+        message = f"Reminder shared with user: {username_to_be_shared_with}.Reminder Details : {existing_reminder.reminder_description}. Expiration date : {user_readable_expiration_date}"
         for subscriber in user_subscriptions:
             _send_reminder_message(subscriber["topicArn"], message)
 
