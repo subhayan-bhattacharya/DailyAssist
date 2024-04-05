@@ -518,11 +518,20 @@ def update_a_reminder(reminder_id: str):
         )
         username = user_details.user_name
         request_body = json.loads(app.current_request.raw_body.decode())
-        request_body["reminder_frequency"] = data_structures.ReminderFrequency[
-            request_body["reminder_frequency"]
+        exisiting_reminder_in_database = DynamoBackend.get_a_reminder_for_a_user(reminder_id=reminder_id, user_name=username)
+        if len(exisiting_reminder_in_database) == 0:
+            raise ValueError(f"No such reminder with id: {reminder_id}")
+        existing_reminder = exisiting_reminder_in_database[0]
+        updated_reminder = {**existing_reminder.attribute_values, **request_body}
+        updated_reminder["reminder_frequency"] = data_structures.ReminderFrequency[
+            existing_reminder.reminder_frequency
         ]
+        # Below is workaround to make sure this is calculated again
+        # We need to fix this going forward.
+        if updated_reminder.get("next_reminder_date_time"):
+            updated_reminder.pop("next_reminder_date_time")
         reminder_details = data_structures.ReminderDetailsFromRequest.parse_obj(
-            request_body
+            updated_reminder
         )
         reminder_details_as_dict = reminder_details.dict()
         reminder_details_as_dict["reminder_frequency"] = reminder_details_as_dict[
