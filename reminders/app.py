@@ -314,7 +314,9 @@ def create_a_new_reminder():
             headers={"Content-Type": "application/json"},
         )
     return Response(
-        body=json.dumps({"message": "New reminder successfully created!"}),
+        body=json.dumps(
+            {"reminderId": reminder_id, "message": "New reminder successfully created!"}
+        ),
         status_code=201,
         headers={"Content-Type": "application/json"},
     )
@@ -501,7 +503,9 @@ def delete_a_reminder(reminder_id: str):
             headers={"Content-Type": "application/json"},
         )
     return Response(
-        body=json.dumps({"message": "Reminder successfully deleted!"}),
+        body=json.dumps(
+            {"reminderId": reminder_id, "message": "Reminder successfully deleted!"}
+        ),
         status_code=200,
         headers={"Content-Type": "application/json"},
     )
@@ -518,7 +522,9 @@ def update_a_reminder(reminder_id: str):
         )
         username = user_details.user_name
         request_body = json.loads(app.current_request.raw_body.decode())
-        exisiting_reminder_in_database = DynamoBackend.get_a_reminder_for_a_user(reminder_id=reminder_id, user_name=username)
+        exisiting_reminder_in_database = DynamoBackend.get_a_reminder_for_a_user(
+            reminder_id=reminder_id, user_name=username
+        )
         if len(exisiting_reminder_in_database) == 0:
             raise ValueError(f"No such reminder with id: {reminder_id}")
         existing_reminder = exisiting_reminder_in_database[0]
@@ -577,7 +583,9 @@ def update_a_reminder(reminder_id: str):
             headers={"Content-Type": "application/json"},
         )
     return Response(
-        body=json.dumps({"message": "Reminder successfully updated!"}),
+        body=json.dumps(
+            {"reminderId": reminder_id, "message": "Reminder successfully updated!"}
+        ),
         status_code=200,
         headers={"Content-Type": "application/json"},
     )
