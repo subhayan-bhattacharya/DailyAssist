@@ -119,19 +119,17 @@ class ReminderDetailsFromRequest(pydantic.BaseModel):
     reminder_tags: Sequence[str]
     reminder_frequency: ReminderFrequency
     should_expire: bool
-    reminder_expiration_date_time: Optional[datetime.datetime]
-    next_reminder_date_time: Optional[datetime.datetime]
+    reminder_expiration_date_time: Optional[datetime.datetime] = None
+    next_reminder_date_time: Optional[datetime.datetime] = None
     # The below 2 attributes are going to be sent in the request
     # in the case when a reminder needs to be shared with someone
-    user_name: Optional[str]
-    reminder_id: Optional[str]
+    user_name: Optional[str] = None
+    reminder_id: Optional[str] = None
 
     @pydantic.validator("next_reminder_date_time", pre=True, allow_reuse=True)
     def _datetime_validator_next_reminder_date_time(
         cls, value: str
     ) -> datetime.datetime:
-        print("Inside the validator for next reminder date time...")
-        print(value)
         # This is usally the case when we are updating the reminder
         # Has to be changed to better code when we have a frontend for this
         if not isinstance(value, datetime.datetime):
@@ -158,8 +156,6 @@ class ReminderDetailsFromRequest(pydantic.BaseModel):
     def _datetime_validator_reminder_expiration_date_time(
         cls, value: str
     ) -> datetime.datetime:
-        print(value)
-        print(type(value))
         try:
             reminder_expiration_date_time = datetime.datetime.strptime(
                 value, "%d/%m/%y %H:%M"
@@ -177,10 +173,9 @@ class ReminderDetailsFromRequest(pydantic.BaseModel):
             )
         return reminder_expiration_date_time
 
-    @pydantic.root_validator
+    @pydantic.root_validator(skip_on_failure=True)
     def expiration_and_next_reminder_date_validator(cls, values):
-        print("Inside the root validator...")
-        print(values)
+        print(f"Inside the root validator : {values}")
         should_expire = values.get("should_expire")
         if not should_expire:
             values.pop("reminder_expiration_date_time")
@@ -196,13 +191,14 @@ class ReminderDetailsFromRequest(pydantic.BaseModel):
                     "next_reminder_date_time"
                 ] = calculated_next_reminder_date_and_time
         else:
-            # I am just overriding the next reminder time with 1 day before expiry
-            # This needs to be changed when i am having a frontend
-            values["next_reminder_date_time"] = values.get("reminder_expiration_date_time") - relativedelta(days=1)
-            next_reminder_date_time = values["next_reminder_date_time"]
             reminder_expiration_date_time = values.get("reminder_expiration_date_time")
+            if not reminder_expiration_date_time:
+                raise ValueError(f"Since the reminder should not expire...a expiration date should be given")
+            next_reminder_date_time = values.get("next_reminder_date_time")
             if next_reminder_date_time is None:
                 # if the next reminder date is not given we have to calculate it
+                # values["next_reminder_date_time"] = values.get("reminder_expiration_date_time") - relativedelta(days=1)
+                # next_reminder_date_time = values["next_reminder_date_time"]
                 calculated_next_reminder_date_and_time = _calculate_next_reminder_date(
                     values.get("reminder_frequency"), reminder_expiration_date_time
                 )

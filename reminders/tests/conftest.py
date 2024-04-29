@@ -9,6 +9,7 @@ import pytest
 from dateutil.relativedelta import relativedelta
 
 project_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+print(f"Inserting project root: {project_root}")
 
 sys.path.insert(0, project_root)
 
