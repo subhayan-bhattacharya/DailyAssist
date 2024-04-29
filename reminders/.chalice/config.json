@@ -6,7 +6,8 @@
       "api_gateway_stage": "api",
       "manage_iam_role": false,
       "autogen_policy": false,
-      "iam_role_arn": "arn:aws:iam::498129003450:role/CoudWatchAndDynamodbAccessRoleForLambda"
+      "iam_role_arn": "arn:aws:iam::498129003450:role/CoudWatchAndDynamodbAccessRoleForLambda",
+      "automatic_layer": true
     }
   }
 }
