@@ -3,6 +3,7 @@
 import os
 import sys
 from datetime import datetime
+from typing import Optional
 
 import boto3
 import pytest
@@ -37,11 +38,11 @@ def docker_app(docker_services):
 @pytest.fixture(scope="session")
 def session():
     """Create boto3 session object."""
-    #return boto3.session.Session(profile_name="dynamo_local")
+    # return boto3.session.Session(profile_name="dynamo_local")
     return boto3.session.Session(
         aws_access_key_id="anything",
         aws_secret_access_key="anything",
-        region_name="eu-central-1"
+        region_name="eu-central-1",
     )
 
 
@@ -72,6 +73,7 @@ def reminders(docker_app, session):
                     "NonKeyAttributes": [
                         "reminder_expiration_date_time",
                         "reminder_id",
+                        "reminder_tags",
                     ],
                 },
             }
@@ -94,14 +96,19 @@ def reminders_model(docker_app):
 
 @pytest.fixture()
 def new_reminder():
-    def _new_reminder(reminder_id: str, reminder_title: str, user_id: str):
+    def _new_reminder(
+        reminder_id: str,
+        reminder_title: str,
+        user_id: str,
+        reminder_tags: Optional[list[str]] = None,
+    ):
         """Create a new reminder."""
         return SingleReminder(
             reminder_id=reminder_id,
             user_id=user_id,
             reminder_title=reminder_title,
             reminder_description="Test reminder",
-            reminder_tags=["Test"],
+            reminder_tags=reminder_tags if reminder_tags is not None else ["Test"],
             reminder_frequency="once",
             should_expire=True,
             reminder_expiration_date_time=datetime.now() + relativedelta(months=1),

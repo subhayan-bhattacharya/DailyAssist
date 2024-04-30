@@ -193,7 +193,9 @@ class ReminderDetailsFromRequest(pydantic.BaseModel):
         else:
             reminder_expiration_date_time = values.get("reminder_expiration_date_time")
             if not reminder_expiration_date_time:
-                raise ValueError(f"Since the reminder should not expire...a expiration date should be given")
+                raise ValueError(
+                    f"Since the reminder should not expire...a expiration date should be given"
+                )
             next_reminder_date_time = values.get("next_reminder_date_time")
             if next_reminder_date_time is None:
                 # if the next reminder date is not given we have to calculate it
@@ -237,3 +239,9 @@ class SingleReminder(pydantic.BaseModel):
                 " 0", " "
             ),
         }
+
+    @pydantic.validator("reminder_tags", pre=True)
+    def convert_to_list_if_set(cls, value):
+        if isinstance(value, set):
+            return list(value)
+        return value

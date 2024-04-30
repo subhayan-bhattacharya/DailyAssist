@@ -1,3 +1,5 @@
 pytest
 lovely-pytest-docker
+chalice
+pytest-mock
 -r ../requirements.txt

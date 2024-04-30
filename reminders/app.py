@@ -178,7 +178,8 @@ def share_a_reminder_with_someone(reminder_id: str):
     """Try to share a reminder with someone."""
     try:
         request_context = app.current_request.context
-        original_user = request_context["authorizer"]["claims"]["cognito:username"]
+        user_details = _get_user_details_from_context(request_context)
+        original_user = user_details.user_name
         request_body = json.loads(app.current_request.raw_body.decode())
         username_to_be_shared_with = request_body.get("username")
         if username_to_be_shared_with is None:
@@ -202,13 +203,11 @@ def share_a_reminder_with_someone(reminder_id: str):
         DynamoBackend.create_a_new_reminder(existing_reminder)
         # We also want to send a confirmation message to the user
         # when the reminder is created.
-        user_subscriptions = filter_sns_arn_by_user(original_user)
         user_readable_expiration_date = (
             existing_reminder.reminder_expiration_date_time.strftime("%d/%m/%y %H:%M")
         )
         message = f"Reminder shared with user: {username_to_be_shared_with}.Reminder Details : {existing_reminder.reminder_description}. Expiration date : {user_readable_expiration_date}"
-        for subscriber in user_subscriptions:
-            _send_reminder_message(subscriber["topicArn"], message)
+        _send_user_confirmation(original_user, message)
 
     except Exception as error:
         traceback.print_exc()
@@ -245,10 +244,7 @@ def create_a_new_reminder():
             request_body
         )
 
-        user_details = data_structures.UserDetails(
-            user_name=request_context["authorizer"]["claims"]["cognito:username"],
-            user_email=request_context["authorizer"]["claims"]["email"],
-        )
+        user_details = _get_user_details_from_context(request_context)
         username = user_details.user_name
         # Check if the user has already created a similar entry by querying the GSI
         reminders_present = list(
@@ -282,13 +278,11 @@ def create_a_new_reminder():
         DynamoBackend.create_a_new_reminder(new_reminder=new_reminder)
         # We also want to send a confirmation message to the user
         # when the reminder is created.
-        user_subscriptions = filter_sns_arn_by_user(username)
         user_readable_expiration_date = (
             reminder_details.reminder_expiration_date_time.strftime("%d/%m/%y %H:%M")
         )
         message = f"New reminder added for date : {user_readable_expiration_date}.Reminder Details : {reminder_details.reminder_description}"
-        for subscriber in user_subscriptions:
-            _send_reminder_message(subscriber["topicArn"], message)
+        _send_user_confirmation(username, message)
 
     except ValidationError as error:
         traceback.print_exc()
@@ -320,6 +314,12 @@ def create_a_new_reminder():
         status_code=201,
         headers={"Content-Type": "application/json"},
     )
+
+
+def _send_user_confirmation(username, message):
+    user_subscriptions = filter_sns_arn_by_user(username)
+    for subscriber in user_subscriptions:
+        _send_reminder_message(subscriber["topicArn"], message)
 
 
 @app.route(
@@ -363,10 +363,7 @@ def get_all_reminders_for_a_user():
     """Gets the list of all reminders for a user."""
     try:
         request_context = app.current_request.context
-        user_details = data_structures.UserDetails(
-            user_name=request_context["authorizer"]["claims"]["cognito:username"],
-            user_email=request_context["authorizer"]["claims"]["email"],
-        )
+        user_details = _get_user_details_from_context(request_context)
         if app.current_request.query_params is not None:
             tag_name = app.current_request.query_params.get("tag")
             print(f"Tag name provided is {tag_name}")
@@ -376,11 +373,17 @@ def get_all_reminders_for_a_user():
                         user_id=user_details.user_name, tag=tag_name
                     )
                 )
+            else:
+                print("The tag name is None... hence getting all reminders")
+                all_reminder_details = DynamoBackend.get_all_reminders_for_a_user(
+                    user_id=user_details.user_name
+                )
         else:
             print("No tag provided... getting all reminders for the user...")
             all_reminder_details = DynamoBackend.get_all_reminders_for_a_user(
                 user_id=user_details.user_name
             )
+        print(all_reminder_details)
         all_reminders_per_user = [
             data_structures.AllRemindersPerUser.parse_obj(reminder.attribute_values)
             for reminder in all_reminder_details
@@ -413,6 +416,15 @@ def get_all_reminders_for_a_user():
             status_code=400,
             headers={"Content-Type": "application/json"},
         )
+
+
+def _get_user_details_from_context(request_context):
+    user_details = data_structures.UserDetails(
+        user_name=request_context["authorizer"]["claims"]["cognito:username"],
+        user_email=request_context["authorizer"]["claims"]["email"],
+    )
+
+    return user_details
 
 
 @app.route("/reminders/{reminder_id}", methods=["GET"], authorizer=authorizer)
