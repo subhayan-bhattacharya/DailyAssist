@@ -37,7 +37,12 @@ def docker_app(docker_services):
 @pytest.fixture(scope="session")
 def session():
     """Create boto3 session object."""
-    return boto3.session.Session(profile_name="dynamo_local")
+    #return boto3.session.Session(profile_name="dynamo_local")
+    return boto3.session.Session(
+        aws_access_key_id="anything",
+        aws_secret_access_key="anything",
+        region_name="eu-central-1"
+    )
 
 
 @pytest.fixture()
@@ -57,7 +62,7 @@ def reminders(docker_app, session):
         ],
         GlobalSecondaryIndexes=[
             {
-                "IndexName": "UserIdReminderTitleGsi",
+                "IndexName": "UserIdReminderTitleGsi2",
                 "KeySchema": [
                     {"AttributeName": "user_id", "KeyType": "HASH"},
                     {"AttributeName": "reminder_title", "KeyType": "RANGE"},
