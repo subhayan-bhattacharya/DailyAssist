@@ -26,39 +26,6 @@ def new_reminder_request():
     }
 
 
-@pytest.fixture
-def create_event():
-    def create_event_inner(
-        uri,
-        method,
-        path,
-        body,
-        request_context,
-        queryParams,
-        content_type="application/json",
-    ):
-        full_request_context = {
-            **request_context,
-            **{
-                "httpMethod": method,
-                "resourcePath": uri,
-            },
-        }
-        return {
-            "requestContext": full_request_context,
-            "headers": {
-                "Content-Type": content_type,
-            },
-            "body": body,
-            "pathParameters": path,
-            "queryStringParameters": queryParams,
-            "multiValueQueryStringParameters": {},
-            "stageVariables": {},
-        }
-
-    return create_event_inner
-
-
 def test_create_a_new_reminder_normal_use_case(
     reminders_model, reminders, new_reminder_request, mocker
 ):
@@ -215,3 +182,108 @@ def test_view_list_of_reminders_filtered_by_tags(
     reminder_ids_returned = [reminder["reminder_id"] for reminder in returned_body]
     assert sorted(reminder_ids_returned) == sorted(["abc", "def"])
     assert "xxx" not in reminder_ids_returned
+
+
+def test_get_remider_tags(reminders_model, reminders, new_reminder, mocker):
+    mocked_get_user_details = mocker.patch("app._get_user_details_from_context")
+    mocked_get_user_details.return_value = data_structures.UserDetails(
+        user_name="test_user_1", user_email="test@gmail.com"
+    )
+    reminder_1 = new_reminder(
+        reminder_id="abc",
+        user_id="test_user_1",
+        reminder_tags=["dummy"],
+        reminder_title="Dummy reminder 1",
+    )
+    dynamo_backend.DynamoBackend.create_a_new_reminder(reminder_1)
+    reminder_2 = new_reminder(
+        reminder_id="def",
+        user_id="test_user_1",
+        reminder_tags=["dummy"],
+        reminder_title="Dummy reminder 2",
+    )
+    reminder_3 = new_reminder(
+        reminder_id="xxx",
+        user_id="test_user_1",
+        reminder_tags=["real"],
+        reminder_title="Dummy reminder 3",
+    )
+    dynamo_backend.DynamoBackend.create_a_new_reminder(reminder_3)
+    with Client(app) as client:
+        response = client.http.get("/tags")
+    returned_body = json.loads(response.body)
+    assert response.status_code == 200
+    assert sorted(["dummy", "real"]) == sorted(returned_body)
+
+
+def test_get_details_about_a_reminder(reminders_model, reminders, new_reminder, mocker):
+    mocked_get_user_details = mocker.patch("app._get_user_details_from_context")
+    mocked_get_user_details.return_value = data_structures.UserDetails(
+        user_name="test_user_1", user_email="test@gmail.com"
+    )
+    reminder_1 = new_reminder(
+        reminder_id="abc",
+        user_id="test_user_1",
+        reminder_tags=["dummy"],
+        reminder_title="Dummy reminder 1",
+    )
+    dynamo_backend.DynamoBackend.create_a_new_reminder(reminder_1)
+    with Client(app) as client:
+        response = client.http.get("/reminders/abc")
+    returned_body = json.loads(response.body)
+    assert response.status_code == 200
+    assert "reminder_description" in returned_body
+    assert "next_reminder_date_time" in returned_body
+    assert "should_expire" in returned_body
+    assert returned_body["reminder_description"] == "Test reminder"
+
+
+def test_delete_a_reminder(reminders_model, reminders, new_reminder, mocker):
+    mocked_send_confirmation = mocker.patch("app._send_user_confirmation")
+    mocked_get_user_details = mocker.patch("app._get_user_details_from_context")
+    mocked_get_user_details.return_value = data_structures.UserDetails(
+        user_name="test_user_1", user_email="test@gmail.com"
+    )
+    reminder_1 = new_reminder(
+        reminder_id="abc",
+        user_id="test_user_1",
+        reminder_tags=["dummy"],
+        reminder_title="Dummy reminder 1",
+    )
+    dynamo_backend.DynamoBackend.create_a_new_reminder(reminder_1)
+    with Client(app) as client:
+        response = client.http.delete("/reminders/abc")
+    returned_body = json.loads(response.body)
+    assert response.status_code == 200
+    assert returned_body["message"] == "Reminder successfully deleted!"
+
+
+def test_updating_a_reminder(reminders_model, reminders, new_reminder, mocker):
+
+    mocked_get_user_details = mocker.patch("app._get_user_details_from_context")
+    mocked_get_user_details.return_value = data_structures.UserDetails(
+        user_name="test_user_1", user_email="test@gmail.com"
+    )
+    reminder_1 = new_reminder(
+        reminder_id="abc",
+        user_id="test_user_1",
+        reminder_tags=["dummy"],
+        reminder_title="Dummy reminder 1",
+    )
+    dynamo_backend.DynamoBackend.create_a_new_reminder(reminder_1)
+    changed_reminder = {
+        "reminder_description": "Changed reminder",
+        "reminder_expiration_date_time": f"{datetime.strftime(datetime.now() + relativedelta(months=1), '%d/%m/%y')} 10:00",
+    }
+    with Client(app) as client:
+        response = client.http.put("/reminders/abc", body=json.dumps(changed_reminder))
+    returned_body = json.loads(response.body)
+    assert response.status_code == 200
+    assert returned_body["message"] == "Reminder successfully updated!"
+    reminder_from_db = list(
+        dynamo_backend.DynamoBackend.get_a_reminder_for_a_user(
+            reminder_id="abc", user_name="test_user_1"
+        )
+    )
+    assert reminder_from_db[0].reminder_id == "abc"
+    assert reminder_from_db[0].reminder_description == "Changed reminder"

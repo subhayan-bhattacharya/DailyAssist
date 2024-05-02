@@ -126,6 +126,12 @@ class ReminderDetailsFromRequest(pydantic.BaseModel):
     user_name: Optional[str] = None
     reminder_id: Optional[str] = None
 
+    @pydantic.validator("reminder_tags", pre=True)
+    def convert_to_list_if_set(cls, value):
+        if isinstance(value, set):
+            return list(value)
+        return value
+
     @pydantic.validator("next_reminder_date_time", pre=True, allow_reuse=True)
     def _datetime_validator_next_reminder_date_time(
         cls, value: str

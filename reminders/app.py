@@ -331,10 +331,7 @@ def get_all_tags_for_a_user():
     """Gets the list of all reminder tags currenty in the database."""
     try:
         request_context = app.current_request.context
-        user_details = data_structures.UserDetails(
-            user_name=request_context["authorizer"]["claims"]["cognito:username"],
-            user_email=request_context["authorizer"]["claims"]["email"],
-        )
+        user_details = _get_user_details_from_context(request_context)
         all_reminder_details = DynamoBackend.get_all_reminders_for_a_user(
             user_id=user_details.user_name
         )
@@ -432,10 +429,7 @@ def view_details_of_a_reminder_for_a_user(reminder_id: str):
     """View the details of a reminder for the user making the request."""
     try:
         request_context = app.current_request.context
-        user_details = data_structures.UserDetails(
-            user_name=request_context["authorizer"]["claims"]["cognito:username"],
-            user_email=request_context["authorizer"]["claims"]["email"],
-        )
+        user_details = _get_user_details_from_context(request_context)
         single_reminder_details = DynamoBackend.get_a_reminder_for_a_user(
             reminder_id=reminder_id, user_name=user_details.user_name
         )
@@ -479,10 +473,7 @@ def delete_a_reminder(reminder_id: str):
     """Delete a reminder."""
     try:
         request_context = app.current_request.context
-        user_details = data_structures.UserDetails(
-            user_name=request_context["authorizer"]["claims"]["cognito:username"],
-            user_email=request_context["authorizer"]["claims"]["email"],
-        )
+        user_details = _get_user_details_from_context(request_context)
         username = user_details.user_name
         single_reminder_details = DynamoBackend.get_a_reminder_for_a_user(
             reminder_id=reminder_id, user_name=user_details.user_name
@@ -495,13 +486,8 @@ def delete_a_reminder(reminder_id: str):
         # We also want to send a confirmation message to the user
         # when the reminder is deleted.
         # However there is a catch
-        user_subscriptions = filter_sns_arn_by_user(username)
-        user_readable_expiration_date = single_reminder_details[
-            0
-        ].reminder_expiration_date_time.strftime("%d/%m/%y %H:%M")
-        message = f"Reminder deleted ! Details : {single_reminder_details[0].reminder_description}.Expiration date : {user_readable_expiration_date}"
-        for subscriber in user_subscriptions:
-            _send_reminder_message(subscriber["topicArn"], message)
+        message = f"Reminder id : {single_reminder_details[0].reminder_id} with details : {single_reminder_details[0].reminder_description} is deleted."
+        _send_user_confirmation(username, message)
     except Exception as error:
         traceback.print_exc()
         return Response(
@@ -528,10 +514,7 @@ def update_a_reminder(reminder_id: str):
     """update a reminder with the given reminder id."""
     try:
         request_context = app.current_request.context
-        user_details = data_structures.UserDetails(
-            user_name=request_context["authorizer"]["claims"]["cognito:username"],
-            user_email=request_context["authorizer"]["claims"]["email"],
-        )
+        user_details = _get_user_details_from_context(request_context)
         username = user_details.user_name
         request_body = json.loads(app.current_request.raw_body.decode())
         exisiting_reminder_in_database = DynamoBackend.get_a_reminder_for_a_user(
@@ -558,16 +541,6 @@ def update_a_reminder(reminder_id: str):
         DynamoBackend.update_a_reminder(
             reminder_id=reminder_id, updated_reminder=reminder_details_as_dict
         )
-        # We also want to send a confirmation message to the user
-        # when the reminder is updated.
-        # However there is a catch
-        user_subscriptions = filter_sns_arn_by_user(username)
-        user_readable_expiration_date = (
-            reminder_details.reminder_expiration_date_time.strftime("%d/%m/%y %H:%M")
-        )
-        message = f"Reminder updated ! Reminder new details : {reminder_details.reminder_description}.Expiration date : {user_readable_expiration_date}"
-        for subscriber in user_subscriptions:
-            _send_reminder_message(subscriber["topicArn"], message)
     except ValidationError as error:
         traceback.print_exc()
         # This is a hack to get the error message string in pydantic
