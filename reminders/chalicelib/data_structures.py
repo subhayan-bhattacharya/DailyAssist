@@ -3,7 +3,21 @@ from enum import Enum
 from typing import Optional, Sequence
 
 import pydantic
+import pytz
 from dateutil.relativedelta import relativedelta
+from pytz import timezone
+
+
+def get_localized_date(date: datetime.datetime):
+    if date.tzinfo is not None and date.tzinfo.utcoffset(date) is not None:
+        print(f"This date {date } is tz aware...")
+        return date
+
+    print(f"This date {date} does not seem to be tz aware..")
+    utc = pytz.utc
+    localized_time = utc.localize(date)
+    print(f"Time after localization : {localized_time}")
+    return localized_time
 
 
 class ReminderFrequency(Enum):
@@ -136,22 +150,27 @@ class ReminderDetailsFromRequest(pydantic.BaseModel):
     def _datetime_validator_next_reminder_date_time(
         cls, value: str
     ) -> datetime.datetime:
+        print(
+            f"The value of next_reminder_date_time in the pre validator is {value} and its type is {type(value)}"
+        )
         # This is usally the case when we are updating the reminder
         # Has to be changed to better code when we have a frontend for this
         if not isinstance(value, datetime.datetime):
             try:
+                print(f"Trying to parse date with format : %d/%m/%y %H:%M")
                 next_reminder_date_time = datetime.datetime.strptime(
                     value, "%d/%m/%y %H:%M"
                 )
             except ValueError as error:
                 print(
-                    f"Parsing of next reminder date encountered error : {error}...trying with a different format..."
+                    f"Parsing of next reminder date encountered error : {error}...trying with format %d %B %Y, %I:%M %p"
                 )
                 next_reminder_date_time = datetime.datetime.strptime(
                     value, "%d %B %Y, %I:%M %p"
                 )
         else:
             next_reminder_date_time = value
+        print(f"Formatting or no formattin the value is : {next_reminder_date_time}")
         if next_reminder_date_time < datetime.datetime.now():
             raise ValueError(
                 "The next reminder date and time should be in the future !!"
@@ -162,17 +181,28 @@ class ReminderDetailsFromRequest(pydantic.BaseModel):
     def _datetime_validator_reminder_expiration_date_time(
         cls, value: str
     ) -> datetime.datetime:
+        print(
+            f"The value of reminder_expiration_date_time in the pre validator is {value} and its type is {type(value)}"
+        )
+        if isinstance(value, datetime.datetime):
+            # This case is when for example we are updating an existing reminder
+            # but we do not want to change the existing reminder expiration date.
+            return value
         try:
+            print(f"Trying to parse date with format : %d/%m/%y %H:%M")
             reminder_expiration_date_time = datetime.datetime.strptime(
                 value, "%d/%m/%y %H:%M"
             )
         except ValueError as error:
             print(
-                f"Parsing of reminder expiration date encountered error : {error}...trying with a different format..."
+                f"Parsing of reminder expiration date encountered error : {error}...trying with format %d %B %Y, %I:%M %p"
             )
             reminder_expiration_date_time = datetime.datetime.strptime(
                 value, "%d %B %Y, %I:%M %p"
             )
+        print(
+            f"Formatting or no formattin the value is : {reminder_expiration_date_time}"
+        )
         if reminder_expiration_date_time < datetime.datetime.now():
             raise ValueError(
                 "The reminder expiration date and time should be in the future !!"
@@ -184,11 +214,17 @@ class ReminderDetailsFromRequest(pydantic.BaseModel):
         print(f"Inside the root validator : {values}")
         should_expire = values.get("should_expire")
         if not should_expire:
+            print(
+                f"Since the reminder should never expire i will pop the expiration date and time which has value : {values.get('reminder_expiration_date_time')}"
+            )
             values.pop("reminder_expiration_date_time")
             # If the reminder should never expire then we do not need reminder expiration date and time
             # for the next reminder we can calculate it
             next_reminder_date_time = values.get("next_reminder_date_time")
             if next_reminder_date_time is None:
+                print(
+                    f"There is no value for next reminder date... we need to calculate"
+                )
                 # if the next reminder date is not given we have to calculate it
                 calculated_next_reminder_date_and_time = _calculate_next_reminder_date(
                     values.get("reminder_frequency"), None
@@ -196,7 +232,11 @@ class ReminderDetailsFromRequest(pydantic.BaseModel):
                 values[
                     "next_reminder_date_time"
                 ] = calculated_next_reminder_date_and_time
+                print(
+                    f"The calculated value for next reminder date is {calculated_next_reminder_date_and_time}"
+                )
         else:
+            print("This reminder should expire..")
             reminder_expiration_date_time = values.get("reminder_expiration_date_time")
             if not reminder_expiration_date_time:
                 raise ValueError(
@@ -213,15 +253,21 @@ class ReminderDetailsFromRequest(pydantic.BaseModel):
                 values[
                     "next_reminder_date_time"
                 ] = calculated_next_reminder_date_and_time
-                return values
-            if (
-                reminder_expiration_date_time is not None
-                and reminder_expiration_date_time < next_reminder_date_time
-            ):
-                # if next reminder date and expiration date are given we need to validate if they are valid
-                raise ValueError(
-                    "The next reminder date and time cannot be later than the reminder expiration date!"
+                print(
+                    f"The calculated value of next reminder date is : {calculated_next_reminder_date_and_time}"
                 )
+                return values
+            print("Trying to localize the next reminder time...")
+            localized_next_reminder_date = get_localized_date(next_reminder_date_time)
+            if reminder_expiration_date_time is not None:
+                print("Trying to localize the expiration date and time...")
+                localized_expiration_date = get_localized_date(
+                    reminder_expiration_date_time
+                )
+                if localized_expiration_date < localized_next_reminder_date:
+                    raise ValueError(
+                        "The next reminder date and time cannot be later than the reminder expiration date!"
+                    )
         return values
 
 

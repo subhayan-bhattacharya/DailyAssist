@@ -527,9 +527,10 @@ def update_a_reminder(reminder_id: str):
         updated_reminder["reminder_frequency"] = data_structures.ReminderFrequency[
             existing_reminder.reminder_frequency
         ]
-        # Below is workaround to make sure this is calculated again
-        # We need to fix this going forward.
-        if updated_reminder.get("next_reminder_date_time"):
+        # First case we are just updating the expiration date of a request and not updating the next reminder date
+        # in that case we need this to be calculated again hence we need to pop this value
+        # But if it is given in the request body then we do not need to calculate it hence no need to pop
+        if updated_reminder.get("next_reminder_date_time") and not request_body.get("next_reminder_date_time"):
             updated_reminder.pop("next_reminder_date_time")
         reminder_details = data_structures.ReminderDetailsFromRequest.parse_obj(
             updated_reminder
