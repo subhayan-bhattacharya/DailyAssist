@@ -1,5 +1,6 @@
 """Tests for the data structures in the reminders project."""
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import pydantic
 import pytest
@@ -31,7 +32,7 @@ def future_dates():
     Returns:
         tuple: A tuple containing (today, next_week, next_month) datetime objects.
     """
-    today = datetime.today()
+    today = datetime.now(ZoneInfo("UTC"))
     return (
         today,
         today + timedelta(days=7),
@@ -175,26 +176,23 @@ class TestReminderDetailsFromRequest:
         [
             (
                 "once",
-                datetime.strftime(datetime.now() + relativedelta(days=20), "%d/%m/%y %H:%M"),
-                datetime.strftime(datetime.now() + relativedelta(days=19), "%d/%m/%y %H:%M")
+                lambda: datetime.now(ZoneInfo("UTC")) + relativedelta(days=20),
+                lambda: datetime.now(ZoneInfo("UTC")) + relativedelta(days=19)
             ),
             (
                 "daily",
-                datetime.strftime(datetime.now() + relativedelta(days=20), "%d/%m/%y %H:%M"),
-                # If the reminder frequency is daily then the next reminder is 1 day from today
-                datetime.strftime(datetime.now() + relativedelta(days=1), "%d/%m/%y %H:%M"),
+                lambda: datetime.now(ZoneInfo("UTC")) + relativedelta(days=20),
+                lambda: datetime.now(ZoneInfo("UTC")) + relativedelta(days=1)
             ),
             (
                 "monthly",
-                datetime.strftime(datetime.now() + relativedelta(months=4), "%d/%m/%y %H:%M"),
-                # If the reminder frequency is monthly then the next reminder is 1 month from today
-                datetime.strftime(datetime.now() + relativedelta(months=1), "%d/%m/%y %H:%M"),
+                lambda: datetime.now(ZoneInfo("UTC")) + relativedelta(months=4),
+                lambda: datetime.now(ZoneInfo("UTC")) + relativedelta(months=1)
             ),
             (
                 "yearly",
-                datetime.strftime(datetime.now() + relativedelta(years=10), "%d/%m/%y %H:%M"),
-                # If the reminder frequency is yearly then the next reminder is 1 year from today
-                datetime.strftime(datetime.now() + relativedelta(years=1), "%d/%m/%y %H:%M"),
+                lambda: datetime.now(ZoneInfo("UTC")) + relativedelta(years=10),
+                lambda: datetime.now(ZoneInfo("UTC")) + relativedelta(years=1)
             ),
         ],
     )
@@ -205,6 +203,14 @@ class TestReminderDetailsFromRequest:
         next_reminder_date_time_in_str,
     ):
         """Test that the calculations of next reminder date and time works."""
+        # Get the actual datetime values from the lambda functions
+        expiration_dt = reminder_expiration_date_time_str()
+        next_dt = next_reminder_date_time_in_str()
+        
+        # Format them in the expected string format
+        expiration_str = expiration_dt.strftime("%d/%m/%y %H:%M")
+        next_dt_str = next_dt.strftime("%d/%m/%y %H:%M")
+        
         reminder = data_structures.ReminderDetailsFromRequest.model_validate(
             {
                 "reminder_title": "My first reminder!",
@@ -212,13 +218,13 @@ class TestReminderDetailsFromRequest:
                 "reminder_tags": ["Test"],
                 "reminder_frequency": frequency,
                 "should_expire": True,
-                "reminder_expiration_date_time": reminder_expiration_date_time_str,
+                "reminder_expiration_date_time": expiration_str,
             }
         )
-        assert (
-            datetime.strftime(reminder.next_reminder_date_time, "%d/%m/%y %H:%M")
-            == next_reminder_date_time_in_str
-        )
+        
+        # Format the actual next reminder time in UTC for comparison
+        actual_next_dt_str = reminder.next_reminder_date_time.strftime("%d/%m/%y %H:%M")
+        assert actual_next_dt_str == next_dt_str
 
     def test_for_a_reminder_frequency_of_yearly_the_next_reminder_cannot_be_more_than_expiration(
         self,
