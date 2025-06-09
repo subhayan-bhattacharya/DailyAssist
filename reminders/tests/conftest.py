@@ -8,6 +8,8 @@ from typing import Optional
 import boto3
 import pytest
 from dateutil.relativedelta import relativedelta
+from testcontainers.core.container import DockerContainer
+from testcontainers.core.waiting_utils import wait_for_logs
 
 project_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 print(f"Inserting project root: {project_root}")
@@ -19,26 +21,23 @@ from chalicelib.data_structures import SingleReminder
 
 
 @pytest.fixture(scope="session")
-def docker_compose_files(pytestconfig):
-    """Get the docker-compose.yml absolute path.
-    Override this fixture in your tests if you need a custom location.
-    """
-    return [pytestconfig.invocation_dir / "tests/docker-compose.yml"]
-
-
-@pytest.fixture(scope="session")
-def docker_app(docker_services):
-    """Start the dynamodb application."""
-    docker_services.start("dynamodb-local")
-    public_port = docker_services.wait_for_service("dynamodb-local", 8000)
-    url = "http://{docker_services.docker_ip}:{public_port}".format(**locals())
-    return url
+def dynamodb_container():
+    """Start a DynamoDB local container."""
+    container = DockerContainer("amazon/dynamodb-local:latest")
+    container.with_command("-jar DynamoDBLocal.jar -sharedDb -inMemory")
+    container.with_exposed_ports(8000)
+    
+    with container as container:
+        # Wait for DynamoDB to be ready
+        wait_for_logs(container, "Initializing DynamoDB Local with the following configuration")
+        port = container.get_exposed_port(8000)
+        endpoint_url = f"http://localhost:{port}"
+        yield endpoint_url
 
 
 @pytest.fixture(scope="session")
 def session():
     """Create boto3 session object."""
-    # return boto3.session.Session(profile_name="dynamo_local")
     return boto3.session.Session(
         aws_access_key_id="anything",
         aws_secret_access_key="anything",
@@ -47,9 +46,9 @@ def session():
 
 
 @pytest.fixture()
-def reminders(docker_app, session):
+def reminders(dynamodb_container, session):
     """Create dynamodb table on local dynamodb."""
-    dynamodb = session.resource("dynamodb", endpoint_url=docker_app)
+    dynamodb = session.resource("dynamodb", endpoint_url=dynamodb_container)
     dynamodb.create_table(
         TableName="Reminders",
         KeySchema=[
@@ -87,9 +86,9 @@ def reminders(docker_app, session):
 
 
 @pytest.fixture()
-def reminders_model(docker_app):
+def reminders_model(dynamodb_container):
     """Update reminders meta information for local testing."""
-    models.Reminders.Meta.host = docker_app
+    models.Reminders.Meta.host = dynamodb_container
     models.Reminders.Meta.aws_access_key_id = "something"
     models.Reminders.Meta.aws_secret_access_key = "anything"
 

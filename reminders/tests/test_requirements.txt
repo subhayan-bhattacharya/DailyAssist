@@ -1,5 +1,5 @@
 pytest
-lovely-pytest-docker
 chalice
 pytest-mock
+testcontainers>=4.10.0
 -r ../requirements.txt
