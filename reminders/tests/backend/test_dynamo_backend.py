@@ -1,9 +1,14 @@
+"""Tests for the DynamoDB backend functionality.
+
+This module contains integration tests for the DynamoDB backend operations,
+including creating, reading, updating, and deleting reminders. It tests both
+single-user and shared reminder scenarios.
+"""
+
 from datetime import datetime
 
-import pytest
-from dateutil.relativedelta import relativedelta
-
 from chalicelib.backend.dynamodb import dynamo_backend
+from dateutil.relativedelta import relativedelta
 
 
 def test_create_single_reminder(reminders, reminders_model, new_reminder):
@@ -45,7 +50,7 @@ def test_get_all_reminders_for_a_user(reminders, reminders_model, new_reminder):
         reminder_id="abc", user_id="test_user_1", reminder_title="Test reminder"
     )
     reminder_2 = new_reminder(
-        reminder_id="def", user_id="test_user_1" "", reminder_title="Test reminder"
+        reminder_id="def", user_id="test_user_1", reminder_title="Test reminder"
     )
     dynamo_backend.DynamoBackend.create_a_new_reminder(reminder_1)
     dynamo_backend.DynamoBackend.create_a_new_reminder(reminder_2)
@@ -83,7 +88,7 @@ def test_update_a_reminder_works_for_a_shared_reminder(
     )
     dynamo_backend.DynamoBackend.create_a_new_reminder(reminder_1)
     reminder_2 = new_reminder(
-        reminder_id="abc", user_id="test_user_2" "", reminder_title="Test reminder"
+        reminder_id="abc", user_id="test_user_2", reminder_title="Test reminder"
     )
     dynamo_backend.DynamoBackend.create_a_new_reminder(reminder_2)
     reminder_1.reminder_description = "Changed reminder description"
@@ -131,7 +136,9 @@ def test_delete_a_reminder(reminders, reminders_model, new_reminder):
     reminder_1 = new_reminder(
         reminder_id="abc", user_id="test_user_1", reminder_title="Test reminder"
     )
-    reminder_2 = new_reminder(reminder_id="def", user_id="test_user_1", reminder_title="Test reminder 2")
+    reminder_2 = new_reminder(
+        reminder_id="def", user_id="test_user_1", reminder_title="Test reminder 2"
+    )
     dynamo_backend.DynamoBackend.create_a_new_reminder(reminder_1)
     dynamo_backend.DynamoBackend.create_a_new_reminder(reminder_2)
     all_reminders_for_user_1 = (
@@ -143,4 +150,3 @@ def test_delete_a_reminder(reminders, reminders_model, new_reminder):
         dynamo_backend.DynamoBackend.get_all_reminders_for_a_user(user_id="test_user_1")
     )
     assert len(all_reminders_for_user_1) == 1
-

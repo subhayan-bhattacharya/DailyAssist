@@ -4,4 +4,4 @@
 *pycache*
 tests/backend/docker/
 tests/docker/
-
+.cursor/

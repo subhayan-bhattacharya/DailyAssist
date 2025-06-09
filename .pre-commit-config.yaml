@@ -1,0 +1,50 @@
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+    -   id: trailing-whitespace
+        exclude: ^reminders/scripts/
+    -   id: end-of-file-fixer
+        exclude: ^reminders/scripts/
+    -   id: check-yaml
+    -   id: check-added-large-files
+    -   id: debug-statements
+        exclude: ^reminders/scripts/
+    -   id: check-ast
+    -   id: check-json
+    -   id: check-merge-conflict
+    -   id: detect-private-key
+
+-   repo: https://github.com/psf/black
+    rev: 24.3.0
+    hooks:
+    -   id: black
+        language_version: python3
+        args: [--line-length=88]
+        exclude: ^reminders/scripts/
+
+-   repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+    -   id: isort
+        args: ["--profile", "black", "--filter-files"]
+        exclude: ^reminders/scripts/
+
+-   repo: https://github.com/pycqa/flake8
+    rev: 7.0.0
+    hooks:
+    -   id: flake8
+        additional_dependencies: [
+            'flake8-bugbear',
+            'flake8-comprehensions',
+            'flake8-docstrings',
+            'flake8-implicit-str-concat',
+            'flake8-print',
+            'flake8-simplify',
+        ]
+        args: [
+            "--max-line-length=88",
+            "--extend-ignore=E203",  # See https://github.com/PyCQA/pycodestyle/issues/373
+            "--per-file-ignores=__init__.py:F401",  # Ignore unused imports in __init__.py files
+        ]
+        exclude: ^reminders/scripts/

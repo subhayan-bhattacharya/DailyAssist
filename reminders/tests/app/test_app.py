@@ -1,14 +1,13 @@
 import json
 from datetime import datetime
 
-import pytest
-from chalice.test import Client
-from dateutil.relativedelta import relativedelta
-
 import app
+import pytest
 from app import app
+from chalice.test import Client
 from chalicelib import data_structures
 from chalicelib.backend.dynamodb import dynamo_backend
+from dateutil.relativedelta import relativedelta
 
 
 @pytest.fixture()

@@ -1,0 +1,8 @@
+# Production dependencies
+-r base.txt
+
+# Production-specific packages
+gunicorn>=21.2.0
+uvicorn>=0.27.0  # For ASGI support
+python-json-logger>=2.0.7  # Structured logging
+sentry-sdk>=1.40.0  # Error tracking

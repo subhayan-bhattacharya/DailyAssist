@@ -1,5 +1,6 @@
 """Module for conftest."""
 
+import logging
 import os
 import sys
 from datetime import datetime
@@ -11,11 +12,12 @@ from dateutil.relativedelta import relativedelta
 from testcontainers.core.container import DockerContainer
 from testcontainers.core.waiting_utils import wait_for_logs
 
+# Configure project path
 project_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-print(f"Inserting project root: {project_root}")
-
+logging.info("Using project root: %s", project_root)
 sys.path.insert(0, project_root)
 
+# Local imports after path setup
 from chalicelib.backend.dynamodb import models
 from chalicelib.data_structures import SingleReminder
 
@@ -26,10 +28,12 @@ def dynamodb_container():
     container = DockerContainer("amazon/dynamodb-local:latest")
     container.with_command("-jar DynamoDBLocal.jar -sharedDb -inMemory")
     container.with_exposed_ports(8000)
-    
+
     with container as container:
         # Wait for DynamoDB to be ready
-        wait_for_logs(container, "Initializing DynamoDB Local with the following configuration")
+        wait_for_logs(
+            container, "Initializing DynamoDB Local with the following configuration"
+        )
         port = container.get_exposed_port(8000)
         endpoint_url = f"http://localhost:{port}"
         yield endpoint_url
@@ -47,7 +51,15 @@ def session():
 
 @pytest.fixture()
 def reminders(dynamodb_container, session):
-    """Create dynamodb table on local dynamodb."""
+    """Create dynamodb table on local dynamodb.
+
+    Args:
+        dynamodb_container: The DynamoDB container fixture
+        session: The boto3 session fixture
+
+    Yields:
+        None: The table is created and ready for use
+    """
     dynamodb = session.resource("dynamodb", endpoint_url=dynamodb_container)
     dynamodb.create_table(
         TableName="Reminders",
@@ -87,7 +99,11 @@ def reminders(dynamodb_container, session):
 
 @pytest.fixture()
 def reminders_model(dynamodb_container):
-    """Update reminders meta information for local testing."""
+    """Update reminders meta information for local testing.
+
+    Args:
+        dynamodb_container: The DynamoDB container fixture
+    """
     models.Reminders.Meta.host = dynamodb_container
     models.Reminders.Meta.aws_access_key_id = "something"
     models.Reminders.Meta.aws_secret_access_key = "anything"
@@ -95,13 +111,29 @@ def reminders_model(dynamodb_container):
 
 @pytest.fixture()
 def new_reminder():
+    """Create a fixture for generating new reminders.
+
+    Returns:
+        function: A factory function for creating SingleReminder instances
+    """
+
     def _new_reminder(
         reminder_id: str,
         reminder_title: str,
         user_id: str,
         reminder_tags: Optional[list[str]] = None,
     ):
-        """Create a new reminder."""
+        """Create a new reminder.
+
+        Args:
+            reminder_id: Unique identifier for the reminder
+            reminder_title: Title of the reminder
+            user_id: ID of the user who owns the reminder
+            reminder_tags: Optional list of tags for the reminder
+
+        Returns:
+            SingleReminder: A new reminder instance
+        """
         return SingleReminder(
             reminder_id=reminder_id,
             user_id=user_id,
