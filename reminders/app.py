@@ -1,12 +1,9 @@
 import datetime
-import itertools
 import json
 import logging
 import os
 import traceback
 import uuid
-
-import boto3
 from chalice import Chalice, CognitoUserPoolAuthorizer, Response
 from chalicelib import data_structures
 from chalicelib.backend.dynamodb.dynamo_backend import DynamoBackend
@@ -58,7 +55,7 @@ def share_a_reminder_with_someone(reminder_id: str):
                 headers={"Content-Type": "application/json"},
             )
 
-        existing_reminder = data_structures.SingleReminder.parse_obj(
+        existing_reminder = data_structures.SingleReminder.model_validate(
             DynamoBackend.get_a_reminder_for_a_user(
                 reminder_id=reminder_id, user_name=original_user
             )[0].attribute_values
@@ -104,7 +101,7 @@ def create_a_new_reminder():
             request_body["reminder_frequency"]
         )
 
-        reminder_details = data_structures.ReminderDetailsFromRequest.parse_obj(
+        reminder_details = data_structures.ReminderDetailsFromRequest.model_validate(
             request_body
         )
 
@@ -123,12 +120,12 @@ def create_a_new_reminder():
 
         reminder_id = str(uuid.uuid1())
 
-        reminder_details_as_dict = reminder_details.dict()
+        reminder_details_as_dict = reminder_details.model_dump()
         reminder_details_as_dict["reminder_frequency"] = reminder_details_as_dict[
             "reminder_frequency"
         ].value
 
-        new_reminder = data_structures.SingleReminder.parse_obj(
+        new_reminder = data_structures.SingleReminder.model_validate(
             {
                 **reminder_details_as_dict,
                 **{
@@ -246,14 +243,14 @@ def get_all_reminders_for_a_user():
             )
         print(all_reminder_details)
         all_reminders_per_user = [
-            data_structures.AllRemindersPerUser.parse_obj(reminder.attribute_values)
+            data_structures.AllRemindersPerUser.model_validate(reminder.attribute_values)
             for reminder in all_reminder_details
         ]
         sorted_reminders_per_user = sorted(
             all_reminders_per_user, key=lambda x: x.reminder_expiration_date_time
         )
 
-        return [json.loads(reminder.json()) for reminder in sorted_reminders_per_user]
+        return [json.loads(reminder.model_dump_json()) for reminder in sorted_reminders_per_user]
     except ValidationError as error:
         traceback.print_exc()
         # This is a hack to get the error message string in pydantic
@@ -300,9 +297,9 @@ def view_details_of_a_reminder_for_a_user(reminder_id: str):
         if len(single_reminder_details) == 0:
             raise ValueError(f"No such reminder with id: {reminder_id}")
         return json.loads(
-            data_structures.SingleReminder.parse_obj(
+            data_structures.SingleReminder.model_validate(
                 single_reminder_details[0].attribute_values
-            ).json()
+            ).model_dump_json()
         )
     except ValidationError as error:
         traceback.print_exc()
@@ -398,10 +395,10 @@ def update_a_reminder(reminder_id: str):
             "next_reminder_date_time"
         ):
             updated_reminder.pop("next_reminder_date_time")
-        reminder_details = data_structures.ReminderDetailsFromRequest.parse_obj(
+        reminder_details = data_structures.ReminderDetailsFromRequest.model_validate(
             updated_reminder
         )
-        reminder_details_as_dict = reminder_details.dict()
+        reminder_details_as_dict = reminder_details.model_dump()
         reminder_details_as_dict["reminder_frequency"] = reminder_details_as_dict[
             "reminder_frequency"
         ].value
