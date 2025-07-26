@@ -1,7 +1,8 @@
+"""Tests for the main Chalice application."""
+
 import json
 from datetime import datetime
 
-import app
 import pytest
 from app import app
 from chalice.test import Client
@@ -19,8 +20,10 @@ def new_reminder_request():
         "reminder_tags": ["doctor"],
         "reminder_frequency": "once",
         "should_expire": True,
-        "reminder_expiration_date_time": f"{datetime.strftime(datetime.now() + relativedelta(months=1), '%d/%m/%y')}"
-        f" 10:00",
+        "reminder_expiration_date_time": (
+            f"{datetime.strftime(datetime.now() + relativedelta(months=1), '%d/%m/%y')}"
+            f" 10:00"
+        ),
         "reminder_id": "6850f2e9-f920-11ec-a7c5-416944df2ab7",
     }
 
@@ -29,7 +32,7 @@ def test_create_a_new_reminder_normal_use_case(
     reminders_model, reminders, new_reminder_request, mocker
 ):
     """Test the function create a new reminder from app."""
-    mocked_send_confirmation = mocker.patch("app._send_user_confirmation")
+    mocker.patch("app._send_user_confirmation")
     mocked_get_user_details = mocker.patch("app._get_user_details_from_context")
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -61,7 +64,7 @@ def test_share_a_reminder(
     reminders_model, reminders, new_reminder_request, new_reminder, mocker
 ):
     """Share a reminder with another user."""
-    mocked_send_confirmation = mocker.patch("app._send_user_confirmation")
+    mocker.patch("app._send_user_confirmation")
     mocked_get_user_details = mocker.patch("app._get_user_details_from_context")
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -149,6 +152,7 @@ def test_view_list_of_all_reminders_for_a_user(
 def test_view_list_of_reminders_filtered_by_tags(
     reminders_model, reminders, new_reminder, mocker
 ):
+    """Test viewing filtered reminders by tags."""
     mocked_get_user_details = mocker.patch("app._get_user_details_from_context")
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -184,6 +188,7 @@ def test_view_list_of_reminders_filtered_by_tags(
 
 
 def test_get_remider_tags(reminders_model, reminders, new_reminder, mocker):
+    """Test getting reminder tags."""
     mocked_get_user_details = mocker.patch("app._get_user_details_from_context")
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -201,6 +206,7 @@ def test_get_remider_tags(reminders_model, reminders, new_reminder, mocker):
         reminder_tags=["dummy"],
         reminder_title="Dummy reminder 2",
     )
+    dynamo_backend.DynamoBackend.create_a_new_reminder(reminder_2)
     reminder_3 = new_reminder(
         reminder_id="xxx",
         user_id="test_user_1",
@@ -216,6 +222,7 @@ def test_get_remider_tags(reminders_model, reminders, new_reminder, mocker):
 
 
 def test_get_details_about_a_reminder(reminders_model, reminders, new_reminder, mocker):
+    """Test getting details about a specific reminder."""
     mocked_get_user_details = mocker.patch("app._get_user_details_from_context")
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -238,7 +245,8 @@ def test_get_details_about_a_reminder(reminders_model, reminders, new_reminder, 
 
 
 def test_delete_a_reminder(reminders_model, reminders, new_reminder, mocker):
-    mocked_send_confirmation = mocker.patch("app._send_user_confirmation")
+    """Test deleting a reminder."""
+    mocker.patch("app._send_user_confirmation")
     mocked_get_user_details = mocker.patch("app._get_user_details_from_context")
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -258,7 +266,7 @@ def test_delete_a_reminder(reminders_model, reminders, new_reminder, mocker):
 
 
 def test_updating_a_reminder(reminders_model, reminders, new_reminder, mocker):
-
+    """Test updating a reminder."""
     mocked_get_user_details = mocker.patch("app._get_user_details_from_context")
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -272,7 +280,10 @@ def test_updating_a_reminder(reminders_model, reminders, new_reminder, mocker):
     dynamo_backend.DynamoBackend.create_a_new_reminder(reminder_1)
     changed_reminder = {
         "reminder_description": "Changed reminder",
-        "reminder_expiration_date_time": f"{datetime.strftime(datetime.now() + relativedelta(months=1), '%d/%m/%y')} 10:00",
+        "reminder_expiration_date_time": (
+            f"{datetime.strftime(datetime.now() + relativedelta(months=1), '%d/%m/%y')}"
+            f" 10:00"
+        ),
     }
     with Client(app) as client:
         response = client.http.put("/reminders/abc", body=json.dumps(changed_reminder))

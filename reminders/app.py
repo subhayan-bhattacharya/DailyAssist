@@ -1,18 +1,21 @@
+"""Main Chalice application for daily assist reminders service."""
+
 import datetime
 import json
 import logging
 import os
 import traceback
 import uuid
+
 from chalice import Chalice, CognitoUserPoolAuthorizer, Response
 from chalicelib import data_structures
 from chalicelib.backend.dynamodb.dynamo_backend import DynamoBackend
 from chalicelib.lambda_handlers import (
-    query_and_send_reminders,
     delete_expired_reminders,
     filter_sns_arn_by_user,
-    send_reminder_message as _send_reminder_message,
+    query_and_send_reminders,
 )
+from chalicelib.lambda_handlers import send_reminder_message as _send_reminder_message
 from pydantic import ValidationError
 
 app = Chalice(app_name="daily_assist_reminders")
@@ -26,11 +29,13 @@ authorizer = CognitoUserPoolAuthorizer(
 
 @app.lambda_function(name="queryAndSendReminders")
 def lambda_query_and_send_reminders(event, context):
+    """Lambda function to query and send reminders."""
     return query_and_send_reminders(event, context)
 
 
 @app.lambda_function(name="deleteExpiredReminders")
 def lambda_delete_expired_reminders(event, context):
+    """Lambda function to delete expired reminders."""
     return delete_expired_reminders(event, context)
 
 
@@ -48,7 +53,10 @@ def share_a_reminder_with_someone(reminder_id: str):
                 body=json.dumps(
                     {
                         "message": "Could not share the reminder!!",
-                        "error": "The message body needs to contain the username with whom the reminder needs to be shared!",
+                        "error": (
+                            "The message body needs to contain the username "
+                            "with whom the reminder needs to be shared!"
+                        ),
                     },
                 ),
                 status_code=400,
@@ -67,7 +75,11 @@ def share_a_reminder_with_someone(reminder_id: str):
         user_readable_expiration_date = (
             existing_reminder.reminder_expiration_date_time.strftime("%d/%m/%y %H:%M")
         )
-        message = f"Reminder shared with user: {username_to_be_shared_with}.Reminder Details : {existing_reminder.reminder_description}. Expiration date : {user_readable_expiration_date}"
+        message = (
+            f"Reminder shared with user: {username_to_be_shared_with}."
+            f"Reminder Details : {existing_reminder.reminder_description}. "
+            f"Expiration date : {user_readable_expiration_date}"
+        )
         _send_user_confirmation(original_user, message)
 
     except Exception as error:
@@ -114,8 +126,8 @@ def create_a_new_reminder():
         if len(reminders_present) > 0:
             logging.error(f"There are reminders present {reminders_present}")
             raise ValueError(
-                f"There is already a reminder with name {reminder_details.reminder_title}"
-                f" for user {username}"
+                f"There is already a reminder with name "
+                f"{reminder_details.reminder_title} for user {username}"
             )
 
         reminder_id = str(uuid.uuid1())
@@ -142,7 +154,10 @@ def create_a_new_reminder():
         user_readable_expiration_date = (
             reminder_details.reminder_expiration_date_time.strftime("%d/%m/%y %H:%M")
         )
-        message = f"New reminder added for date : {user_readable_expiration_date}.Reminder Details : {reminder_details.reminder_description}"
+        message = (
+            f"New reminder added for date : {user_readable_expiration_date}."
+            f"Reminder Details : {reminder_details.reminder_description}"
+        )
         _send_user_confirmation(username, message)
 
     except ValidationError as error:
@@ -224,7 +239,7 @@ def get_all_reminders_for_a_user():
         user_details = _get_user_details_from_context(request_context)
         if app.current_request.query_params is not None:
             tag_name = app.current_request.query_params.get("tag")
-            print(f"Tag name provided is {tag_name}")
+            logging.info(f"Tag name provided is {tag_name}")
             if tag_name is not None:
                 all_reminder_details = (
                     DynamoBackend.get_all_reminders_for_a_user_by_tag(
@@ -232,25 +247,30 @@ def get_all_reminders_for_a_user():
                     )
                 )
             else:
-                print("The tag name is None... hence getting all reminders")
+                logging.info("The tag name is None... hence getting all reminders")
                 all_reminder_details = DynamoBackend.get_all_reminders_for_a_user(
                     user_id=user_details.user_name
                 )
         else:
-            print("No tag provided... getting all reminders for the user...")
+            logging.info("No tag provided... getting all reminders for the user...")
             all_reminder_details = DynamoBackend.get_all_reminders_for_a_user(
                 user_id=user_details.user_name
             )
-        print(all_reminder_details)
+        logging.debug(all_reminder_details)
         all_reminders_per_user = [
-            data_structures.AllRemindersPerUser.model_validate(reminder.attribute_values)
+            data_structures.AllRemindersPerUser.model_validate(
+                reminder.attribute_values
+            )
             for reminder in all_reminder_details
         ]
         sorted_reminders_per_user = sorted(
             all_reminders_per_user, key=lambda x: x.reminder_expiration_date_time
         )
 
-        return [json.loads(reminder.model_dump_json()) for reminder in sorted_reminders_per_user]
+        return [
+            json.loads(reminder.model_dump_json())
+            for reminder in sorted_reminders_per_user
+        ]
     except ValidationError as error:
         traceback.print_exc()
         # This is a hack to get the error message string in pydantic
@@ -308,7 +328,10 @@ def view_details_of_a_reminder_for_a_user(reminder_id: str):
         return Response(
             body=json.dumps(
                 {
-                    "message": f"Could not retrieve reminder with reminder id {reminder_id}!!",
+                    "message": (
+                        f"Could not retrieve reminder with reminder id "
+                        f"{reminder_id}!!"
+                    ),
                     "error": error_message,
                 },
             ),
@@ -320,7 +343,10 @@ def view_details_of_a_reminder_for_a_user(reminder_id: str):
         return Response(
             body=json.dumps(
                 {
-                    "message": f"Could not retrieve reminder with reminder id {reminder_id}!!",
+                    "message": (
+                        f"Could not retrieve reminder with reminder id "
+                        f"{reminder_id}!!"
+                    ),
                     "error": str(error),
                 },
             ),
@@ -347,7 +373,11 @@ def delete_a_reminder(reminder_id: str):
         # We also want to send a confirmation message to the user
         # when the reminder is deleted.
         # However there is a catch
-        message = f"Reminder id : {single_reminder_details[0].reminder_id} with details : {single_reminder_details[0].reminder_description} is deleted."
+        message = (
+            f"Reminder id : {single_reminder_details[0].reminder_id} "
+            f"with details : {single_reminder_details[0].reminder_description} "
+            f"is deleted."
+        )
         _send_user_confirmation(username, message)
     except Exception as error:
         traceback.print_exc()
@@ -372,7 +402,7 @@ def delete_a_reminder(reminder_id: str):
 
 @app.route("/reminders/{reminder_id}", methods=["PUT"], authorizer=authorizer)
 def update_a_reminder(reminder_id: str):
-    """update a reminder with the given reminder id."""
+    """Update a reminder with the given reminder id."""
     try:
         request_context = app.current_request.context
         user_details = _get_user_details_from_context(request_context)
@@ -384,13 +414,17 @@ def update_a_reminder(reminder_id: str):
         if len(exisiting_reminder_in_database) == 0:
             raise ValueError(f"No such reminder with id: {reminder_id}")
         existing_reminder = exisiting_reminder_in_database[0]
-        updated_reminder = {**existing_reminder.attribute_values, **request_body}
-        updated_reminder["reminder_frequency"] = data_structures.ReminderFrequency(
-            existing_reminder.reminder_frequency
-        )
-        # First case we are just updating the expiration date of a request and not updating the next reminder date
-        # in that case we need this to be calculated again hence we need to pop this value
-        # But if it is given in the request body then we do not need to calculate it hence no need to pop
+        updated_reminder = {
+            **existing_reminder.attribute_values,
+            **request_body,
+            "reminder_frequency": data_structures.ReminderFrequency(
+                existing_reminder.reminder_frequency
+            ),
+        }
+        # First case we are just updating the expiration date of a request and not
+        # updating the next reminder date in that case we need this to be calculated
+        # again hence we need to pop this value. But if it is given in the request
+        # body then we do not need to calculate it hence no need to pop
         if updated_reminder.get("next_reminder_date_time") and not request_body.get(
             "next_reminder_date_time"
         ):

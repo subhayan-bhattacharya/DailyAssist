@@ -1,4 +1,8 @@
+"""Lambda handler functions for reminders service."""
+
 import datetime
+import logging
+
 import boto3
 from chalicelib import data_structures
 from chalicelib.backend.dynamodb.dynamo_backend import DynamoBackend
@@ -18,10 +22,15 @@ def get_reminder_description_for_reminders_for_today(user):
         )
         todays_date = datetime.datetime.strftime(datetime.datetime.now(), "%d/%m/%y")
         if todays_date == next_reminder_date:
-            descriptions.append(
-                f"{next_reminder_details[0].reminder_description} \n Reminder due date: "
-                f"{datetime.datetime.strftime(next_reminder_details[0].reminder_expiration_date_time, '%d %B, %Y %H:%M')}"
+            expiration_str = datetime.datetime.strftime(
+                next_reminder_details[0].reminder_expiration_date_time,
+                "%d %B, %Y %H:%M",
             )
+            reminder_text = (
+                f"{next_reminder_details[0].reminder_description} \n "
+                f"Reminder due date: {expiration_str}"
+            )
+            descriptions.append(reminder_text)
 
     return descriptions
 
@@ -43,7 +52,7 @@ def send_reminder_message(message_arn, message):
 
 
 def filter_sns_arn_by_user(username):
-    """This function goes through all the resource ARN for SNS and filters for the user."""
+    """Filter SNS ARNs for a specific user."""
     client = boto3.client("sns")
     try:
         # Call the list_topics API to get all SNS topics
@@ -67,11 +76,11 @@ def filter_sns_arn_by_user(username):
 
             # Add subscribers for the topic to the result array
             subscribers.append({"topicArn": topic_arn, "subscriptions": subscriptions})
-        print(f"Details of subscriptions for {username} are:")
-        print(subscribers)
+        logging.info(f"Details of subscriptions for {username} are:")
+        logging.debug(subscribers)
         # Return the result containing subscribers for all topics
         return subscribers
-    except Exception as e:
+    except Exception:
         raise ValueError(f"Could not filter through the subscriptions for {username}")
 
 
@@ -84,7 +93,7 @@ def query_and_send_reminders(event, context):
     user_pool_id = event.get("user_pool_id")
     if users is None:
         raise ValueError(
-            f"The data for the lambda function needs to accept a list of users!"
+            "The data for the lambda function needs to accept a list of users!"
         )
     reminders_for_which_we_need_to_remind = {"details": {}}
     for user in users:
@@ -115,15 +124,15 @@ def query_and_send_reminders(event, context):
 
 
 def delete_expired_reminders(event, context):
-    """
-    Deletes expired reminders.
+    """Delete expired reminders for specified users.
+
     Just like the previous function we need to have the users
     for whom we like to do the deletion.
     """
     users = event.get("users")
     if users is None:
         raise ValueError(
-            f"The data for the lambda function needs to accept a list of users!"
+            "The data for the lambda function needs to accept a list of users!"
         )
     details = {}
     for user in users:
