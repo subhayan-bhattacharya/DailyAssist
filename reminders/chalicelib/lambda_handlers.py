@@ -142,7 +142,7 @@ def delete_expired_reminders(event, context):
             user_id=username
         )
         for reminder in reminders_for_user:
-            parsed_reminder = data_structures.AllRemindersPerUser.parse_obj(
+            parsed_reminder = data_structures.AllRemindersPerUser.model_validate(
                 reminder.attribute_values
             )
             if (

@@ -40,12 +40,8 @@ class DynamoBackend:
             DynamoDBError: If there's an error saving to DynamoDB.
         """
         try:
-            # Handle both dict() and model_dump() methods for compatibility
-            data = (
-                new_reminder.dict()
-                if hasattr(new_reminder, "dict")
-                else new_reminder.model_dump()
-            )
+            # Use Pydantic v2 model_dump() method
+            data = new_reminder.model_dump()
             reminder_model = models.Reminders(**data)
             return reminder_model.save()
         except PynamoDBException as e:

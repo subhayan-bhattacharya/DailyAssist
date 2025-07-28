@@ -70,7 +70,7 @@ def test_update_a_reminder_for_a_user(reminders, reminders_model, new_reminder):
     dynamo_backend.DynamoBackend.create_a_new_reminder(reminder_1)
     reminder_1.reminder_description = "Changed reminder description"
     dynamo_backend.DynamoBackend.update_a_reminder(
-        reminder_id="abc", updated_reminder=reminder_1.dict()
+        reminder_id="abc", updated_reminder=reminder_1.model_dump()
     )
     reminder_from_db = dynamo_backend.DynamoBackend.get_a_reminder_for_a_user(
         reminder_id="abc", user_name="test_user_1"
@@ -93,7 +93,7 @@ def test_update_a_reminder_works_for_a_shared_reminder(
     dynamo_backend.DynamoBackend.create_a_new_reminder(reminder_2)
     reminder_1.reminder_description = "Changed reminder description"
     dynamo_backend.DynamoBackend.update_a_reminder(
-        reminder_id="abc", updated_reminder=reminder_1.dict()
+        reminder_id="abc", updated_reminder=reminder_1.model_dump()
     )
     reminder_from_db_user_1 = dynamo_backend.DynamoBackend.get_a_reminder_for_a_user(
         reminder_id="abc", user_name="test_user_1"
