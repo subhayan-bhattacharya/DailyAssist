@@ -32,8 +32,10 @@ def test_create_a_new_reminder_normal_use_case(
     reminders_model, reminders, new_reminder_request, mocker
 ):
     """Test the function create a new reminder from app."""
-    mocker.patch("app._send_user_confirmation")
-    mocked_get_user_details = mocker.patch("app._get_user_details_from_context")
+    mocked_send_confirmation = mocker.patch("chalicelib.utils.send_user_confirmation")
+    mocked_get_user_details = mocker.patch(
+        "chalicelib.utils.get_user_details_from_context"
+    )
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
     )
@@ -59,13 +61,23 @@ def test_create_a_new_reminder_normal_use_case(
     assert len(reminder_from_db) == 1
     assert reminder_from_db[0].reminder_id == reminder_id_in_response
 
+    # Verify that send_user_confirmation was called with the correct arguments
+    mocked_send_confirmation.assert_called_once()
+    call_args = mocked_send_confirmation.call_args
+    assert call_args[0][0] == "test_user_1"  # username
+    assert "01/09/25 10:00" in call_args[0][1]  # expiration date in message
+    assert "Description" in call_args[0][1]  # reminder_description in message
+    assert "New reminder added for date" in call_args[0][1]
+
 
 def test_share_a_reminder(
     reminders_model, reminders, new_reminder_request, new_reminder, mocker
 ):
     """Share a reminder with another user."""
-    mocker.patch("app._send_user_confirmation")
-    mocked_get_user_details = mocker.patch("app._get_user_details_from_context")
+    mocked_send_confirmation = mocker.patch("chalicelib.utils.send_user_confirmation")
+    mocked_get_user_details = mocker.patch(
+        "chalicelib.utils.get_user_details_from_context"
+    )
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
     )
@@ -110,12 +122,20 @@ def test_share_a_reminder(
         reminder_from_db_user_2[0].reminder_id == reminder_from_db_user_1[0].reminder_id
     )
 
+    # Verify that send_user_confirmation was called with the correct arguments
+    mocked_send_confirmation.assert_called_once()
+    call_args = mocked_send_confirmation.call_args
+    assert call_args[0][0] == "test_user_1"  # original_user
+    assert "test_user_2" in call_args[0][1]  # username_to_be_shared_with in message
+    assert "Test reminder" in call_args[0][1]  # reminder_description in message
+    assert "Reminder shared with user: test_user_2" in call_args[0][1]
+
 
 def test_view_list_of_all_reminders_for_a_user(
     reminders_model, reminders, new_reminder, mocker
 ):
     """Test the function get_all_reminders_for_a_user."""
-    mocked_get_user_details = mocker.patch("app._get_user_details_from_context")
+    mocked_get_user_details = mocker.patch("app.get_user_details_from_context")
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
     )
@@ -153,7 +173,7 @@ def test_view_list_of_reminders_filtered_by_tags(
     reminders_model, reminders, new_reminder, mocker
 ):
     """Test viewing filtered reminders by tags."""
-    mocked_get_user_details = mocker.patch("app._get_user_details_from_context")
+    mocked_get_user_details = mocker.patch("app.get_user_details_from_context")
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
     )
@@ -189,7 +209,9 @@ def test_view_list_of_reminders_filtered_by_tags(
 
 def test_get_remider_tags(reminders_model, reminders, new_reminder, mocker):
     """Test getting reminder tags."""
-    mocked_get_user_details = mocker.patch("app._get_user_details_from_context")
+    mocked_get_user_details = mocker.patch(
+        "chalicelib.utils.get_user_details_from_context"
+    )
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
     )
@@ -220,10 +242,13 @@ def test_get_remider_tags(reminders_model, reminders, new_reminder, mocker):
     assert response.status_code == 200
     assert sorted(["dummy", "real"]) == sorted(returned_body)
 
+    # Verify that get_user_details_from_context was called
+    mocked_get_user_details.assert_called_once()
+
 
 def test_get_details_about_a_reminder(reminders_model, reminders, new_reminder, mocker):
     """Test getting details about a specific reminder."""
-    mocked_get_user_details = mocker.patch("app._get_user_details_from_context")
+    mocked_get_user_details = mocker.patch("app.get_user_details_from_context")
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
     )
@@ -246,8 +271,8 @@ def test_get_details_about_a_reminder(reminders_model, reminders, new_reminder, 
 
 def test_delete_a_reminder(reminders_model, reminders, new_reminder, mocker):
     """Test deleting a reminder."""
-    mocker.patch("app._send_user_confirmation")
-    mocked_get_user_details = mocker.patch("app._get_user_details_from_context")
+    mocked_send_confirmation = mocker.patch("app.send_user_confirmation")
+    mocked_get_user_details = mocker.patch("app.get_user_details_from_context")
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
     )
@@ -264,10 +289,17 @@ def test_delete_a_reminder(reminders_model, reminders, new_reminder, mocker):
     assert response.status_code == 200
     assert returned_body["message"] == "Reminder successfully deleted!"
 
+    # Verify that send_user_confirmation was called with the correct arguments
+    mocked_send_confirmation.assert_called_once()
+    call_args = mocked_send_confirmation.call_args
+    assert call_args[0][0] == "test_user_1"  # username
+    assert "abc" in call_args[0][1]  # reminder_id in message
+    assert "is deleted" in call_args[0][1]
+
 
 def test_updating_a_reminder(reminders_model, reminders, new_reminder, mocker):
     """Test updating a reminder."""
-    mocked_get_user_details = mocker.patch("app._get_user_details_from_context")
+    mocked_get_user_details = mocker.patch("app.get_user_details_from_context")
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
     )
