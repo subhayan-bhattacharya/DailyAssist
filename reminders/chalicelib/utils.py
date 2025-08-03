@@ -440,9 +440,6 @@ def update_reminder_for_user(reminder_id: str, current_request, request_context)
         updated_reminder = {
             **existing_reminder.attribute_values,
             **request_body,
-            "reminder_frequency": data_structures.ReminderFrequency(
-                existing_reminder.reminder_frequency
-            ),
         }
         # First case we are just updating the expiration date of a request and not
         # updating the next reminder date in that case we need this to be calculated
