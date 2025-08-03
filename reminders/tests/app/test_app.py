@@ -624,6 +624,7 @@ def test_updating_reminder_should_expire_toggle(
     dynamo_backend.DynamoBackend.create_a_new_reminder(reminder_1)
 
     changed_reminder = {
+        "reminder_frequency": "monthly",
         "should_expire": False,
         "reminder_description": "Now non-expiring reminder",
     }

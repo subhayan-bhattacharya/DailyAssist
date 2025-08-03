@@ -441,6 +441,7 @@ def update_reminder_for_user(reminder_id: str, current_request, request_context)
             **existing_reminder.attribute_values,
             **request_body,
         }
+
         # First case we are just updating the expiration date of a request and not
         # updating the next reminder date in that case we need this to be calculated
         # again hence we need to pop this value. But if it is given in the request
