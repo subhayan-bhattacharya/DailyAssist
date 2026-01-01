@@ -18,8 +18,8 @@ logging.info("Using project root: %s", project_root)
 sys.path.insert(0, project_root)
 
 # Local imports after path setup
-from chalicelib.backend.dynamodb import models  # noqa: E402
-from chalicelib.data_structures import SingleReminder  # noqa: E402
+from core.backend.dynamodb import models  # noqa: E402
+from core.data_structures import SingleReminder  # noqa: E402
 
 
 @pytest.fixture(scope="session")

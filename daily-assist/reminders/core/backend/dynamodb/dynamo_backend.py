@@ -6,8 +6,8 @@ for the reminders application. It uses PynamoDB models for database interactions
 
 from typing import Any, Dict, Iterator, List
 
-import chalicelib.backend.dynamodb.models as models
-from chalicelib.data_structures import SingleReminder
+import core.backend.dynamodb.models as models
+from core.data_structures import SingleReminder
 from pynamodb.exceptions import PynamoDBException
 
 

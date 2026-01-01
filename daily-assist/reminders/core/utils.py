@@ -6,28 +6,12 @@ import logging
 import traceback
 import uuid
 
-from chalice import Response
-from chalicelib import data_structures
-from chalicelib.backend.dynamodb.dynamo_backend import DynamoBackend
-from chalicelib.lambda_handlers import filter_sns_arn_by_user
-from chalicelib.lambda_handlers import send_reminder_message as _send_reminder_message
+from fastapi import HTTPException
+from core import data_structures
+from core.backend.dynamodb.dynamo_backend import DynamoBackend
+from core.lambda_handlers import filter_sns_arn_by_user
+from core.lambda_handlers import send_reminder_message as _send_reminder_message
 from pydantic import ValidationError
-
-
-def get_user_details_from_context(request_context):
-    """Extract user details from the request context.
-
-    Args:
-        request_context: The request context containing authorization claims
-
-    Returns:
-        UserDetails: User details object with username and email
-    """
-    user_details = data_structures.UserDetails(
-        user_name=request_context["authorizer"]["claims"]["cognito:username"],
-        user_email=request_context["authorizer"]["claims"]["email"],
-    )
-    return user_details
 
 
 def send_user_confirmation(username, message):
@@ -42,37 +26,27 @@ def send_user_confirmation(username, message):
         _send_reminder_message(subscriber["topicArn"], message)
 
 
-def share_reminder_with_user(reminder_id: str, current_request, request_context):
+def share_reminder_with_user(
+    reminder_id: str,
+    share_request: data_structures.ShareReminderRequest,
+    user_details: data_structures.UserDetails
+) -> data_structures.MessageResponse:
     """Share a reminder with another user.
 
     Args:
         reminder_id: The ID of the reminder to share
-        current_request: The current Chalice request object
-        request_context: The request context containing user details
+        share_request: The share reminder request
+        user_details: The user details from authentication
 
     Returns:
-        Response: JSON response indicating success or failure
+        MessageResponse: Response indicating success
+
+    Raises:
+        HTTPException: If sharing fails
     """
     try:
-        user_details = get_user_details_from_context(request_context)
         original_user = user_details.user_name
-        request_body = json.loads(current_request.raw_body.decode())
-        username_to_be_shared_with = request_body.get("username")
-
-        if username_to_be_shared_with is None:
-            return Response(
-                body=json.dumps(
-                    {
-                        "message": "Could not share the reminder!!",
-                        "error": (
-                            "The message body needs to contain the username "
-                            "with whom the reminder needs to be shared!"
-                        ),
-                    },
-                ),
-                status_code=400,
-                headers={"Content-Type": "application/json"},
-            )
+        username_to_be_shared_with = share_request.username
 
         existing_reminder = data_structures.SingleReminder.model_validate(
             DynamoBackend.get_a_reminder_for_a_user(
@@ -93,35 +67,36 @@ def share_reminder_with_user(reminder_id: str, current_request, request_context)
         )
         send_user_confirmation(original_user, message)
 
+        return data_structures.MessageResponse(message="Reminder successfully shared!")
+
+    except HTTPException:
+        raise
     except Exception as error:
         traceback.print_exc()
-        return Response(
-            body=json.dumps(
-                {"message": "Could not share the reminder!!", "error": str(error)},
-            ),
+        raise HTTPException(
             status_code=400,
-            headers={"Content-Type": "application/json"},
+            detail={"message": "Could not share the reminder!!", "error": str(error)}
         )
 
-    return Response(
-        body=json.dumps({"message": "Reminder successfully shared!"}),
-        status_code=200,
-        headers={"Content-Type": "application/json"},
-    )
 
-
-def create_new_reminder(current_request, request_context):
+def create_new_reminder(
+    create_request: data_structures.CreateReminderRequest,
+    user_details: data_structures.UserDetails
+) -> data_structures.CreateReminderResponse:
     """Create a new reminder in the database.
 
     Args:
-        current_request: The current Chalice request object
-        request_context: The request context containing user details
+        create_request: The create reminder request
+        user_details: The user details from authentication
 
     Returns:
-        Response: JSON response indicating success or failure
+        CreateReminderResponse: Response with reminder ID and success message
+
+    Raises:
+        HTTPException: If creation fails
     """
     try:
-        request_body = json.loads(current_request.raw_body.decode())
+        request_body = create_request.model_dump()
         request_body["reminder_frequency"] = data_structures.ReminderFrequency(
             request_body["reminder_frequency"]
         )
@@ -130,7 +105,6 @@ def create_new_reminder(current_request, request_context):
             request_body
         )
 
-        user_details = get_user_details_from_context(request_context)
         username = user_details.user_name
         # Check if the user has already created a similar entry by querying the GSI
         reminders_present = list(
@@ -172,53 +146,43 @@ def create_new_reminder(current_request, request_context):
         )
         send_user_confirmation(username, message)
 
-        return Response(
-            body=json.dumps(
-                {
-                    "reminderId": reminder_id,
-                    "message": "New reminder successfully created!",
-                }
-            ),
-            status_code=201,
-            headers={"Content-Type": "application/json"},
+        return data_structures.CreateReminderResponse(
+            reminderId=reminder_id,
+            message="New reminder successfully created!"
         )
 
     except ValidationError as error:
         traceback.print_exc()
         # This is a hack to get the error message string in pydantic
         error_message = str(error)
-        return Response(
-            body=json.dumps(
-                {
-                    "message": "Could not create a new reminder!!",
-                    "error": error_message,
-                },
-            ),
+        raise HTTPException(
             status_code=400,
-            headers={"Content-Type": "application/json"},
+            detail={
+                "message": "Could not create a new reminder!!",
+                "error": error_message,
+            }
         )
     except Exception as error:
         traceback.print_exc()
-        return Response(
-            body=json.dumps(
-                {"message": "Could not create a new reminder!!", "error": str(error)},
-            ),
+        raise HTTPException(
             status_code=400,
-            headers={"Content-Type": "application/json"},
+            detail={"message": "Could not create a new reminder!!", "error": str(error)}
         )
 
 
-def get_all_tags_for_user(request_context):
+def get_all_tags_for_user(user_details: data_structures.UserDetails) -> list[str]:
     """Get all reminder tags for a user.
 
     Args:
-        request_context: The request context containing user details
+        user_details: The user details from authentication
 
     Returns:
-        list or Response: List of tags on success, Response object on error
+        list[str]: List of unique tags
+
+    Raises:
+        HTTPException: If retrieval fails
     """
     try:
-        user_details = get_user_details_from_context(request_context)
         all_reminder_details = DynamoBackend.get_all_reminders_for_a_user(
             user_id=user_details.user_name
         )
@@ -229,46 +193,40 @@ def get_all_tags_for_user(request_context):
 
     except Exception as error:
         traceback.print_exc()
-        return Response(
-            body=json.dumps(
-                {"message": "Could not retrieve all tags!!", "error": str(error)},
-            ),
+        raise HTTPException(
             status_code=400,
-            headers={"Content-Type": "application/json"},
+            detail={"message": "Could not retrieve all tags!!", "error": str(error)}
         )
 
 
-def get_all_reminders_for_user(current_request, request_context):
+def get_all_reminders_for_user(
+    user_details: data_structures.UserDetails,
+    tag: str | None = None
+) -> list[data_structures.AllRemindersPerUser]:
     """Get all reminders for a user, optionally filtered by tag.
 
     Args:
-        current_request: The current Chalice request object
-        request_context: The request context containing user details
+        user_details: The user details from authentication
+        tag: Optional tag to filter reminders
 
     Returns:
-        list or Response: List of reminders on success, Response object on error
+        list[AllRemindersPerUser]: List of reminders
+
+    Raises:
+        HTTPException: If retrieval fails
     """
     try:
-        user_details = get_user_details_from_context(request_context)
-        if current_request.query_params is not None:
-            tag_name = current_request.query_params.get("tag")
-            logging.info(f"Tag name provided is {tag_name}")
-            if tag_name is not None:
-                all_reminder_details = (
-                    DynamoBackend.get_all_reminders_for_a_user_by_tag(
-                        user_id=user_details.user_name, tag=tag_name
-                    )
-                )
-            else:
-                logging.info("The tag name is None... hence getting all reminders")
-                all_reminder_details = DynamoBackend.get_all_reminders_for_a_user(
-                    user_id=user_details.user_name
-                )
+        if tag is not None:
+            logging.info(f"Tag name provided is {tag}")
+            all_reminder_details = DynamoBackend.get_all_reminders_for_a_user_by_tag(
+                user_id=user_details.user_name, tag=tag
+            )
         else:
             logging.info("No tag provided... getting all reminders for the user...")
             all_reminder_details = DynamoBackend.get_all_reminders_for_a_user(
                 user_id=user_details.user_name
             )
+
         logging.debug(all_reminder_details)
         all_reminders_per_user = [
             data_structures.AllRemindersPerUser.model_validate(
@@ -280,103 +238,97 @@ def get_all_reminders_for_user(current_request, request_context):
             all_reminders_per_user, key=lambda x: x.reminder_expiration_date_time
         )
 
-        return [
-            json.loads(reminder.model_dump_json())
-            for reminder in sorted_reminders_per_user
-        ]
+        return sorted_reminders_per_user
+
     except ValidationError as error:
         traceback.print_exc()
         # This is a hack to get the error message string in pydantic
         error_message = str(error)
-        return Response(
-            body=json.dumps(
-                {
-                    "message": "Could not retrieve all reminders!!",
-                    "error": error_message,
-                },
-            ),
+        raise HTTPException(
             status_code=400,
-            headers={"Content-Type": "application/json"},
+            detail={
+                "message": "Could not retrieve all reminders!!",
+                "error": error_message,
+            }
         )
     except Exception as error:
         traceback.print_exc()
-        return Response(
-            body=json.dumps(
-                {"message": "Could not retrieve all reminders!!", "error": str(error)},
-            ),
+        raise HTTPException(
             status_code=400,
-            headers={"Content-Type": "application/json"},
+            detail={"message": "Could not retrieve all reminders!!", "error": str(error)}
         )
 
 
-def view_reminder_details_for_user(reminder_id: str, request_context):
+def view_reminder_details_for_user(
+    reminder_id: str,
+    user_details: data_structures.UserDetails
+) -> data_structures.SingleReminder:
     """View the details of a reminder for the user making the request.
 
     Args:
         reminder_id: The ID of the reminder to view
-        request_context: The request context containing user details
+        user_details: The user details from authentication
 
     Returns:
-        dict or Response: Reminder details on success, Response object on error
+        SingleReminder: Reminder details
+
+    Raises:
+        HTTPException: If retrieval fails
     """
     try:
-        user_details = get_user_details_from_context(request_context)
         single_reminder_details = DynamoBackend.get_a_reminder_for_a_user(
             reminder_id=reminder_id, user_name=user_details.user_name
         )
         if len(single_reminder_details) == 0:
             raise ValueError(f"No such reminder with id: {reminder_id}")
-        return json.loads(
-            data_structures.SingleReminder.model_validate(
-                single_reminder_details[0].attribute_values
-            ).model_dump_json()
+        return data_structures.SingleReminder.model_validate(
+            single_reminder_details[0].attribute_values
         )
     except ValidationError as error:
         traceback.print_exc()
         # This is a hack to get the error message string in pydantic
         error_message = str(error)
-        return Response(
-            body=json.dumps(
-                {
-                    "message": (
-                        f"Could not retrieve reminder with reminder id "
-                        f"{reminder_id}!!"
-                    ),
-                    "error": error_message,
-                },
-            ),
+        raise HTTPException(
             status_code=400,
-            headers={"Content-Type": "application/json"},
+            detail={
+                "message": (
+                    f"Could not retrieve reminder with reminder id "
+                    f"{reminder_id}!!"
+                ),
+                "error": error_message,
+            }
         )
     except Exception as error:
         traceback.print_exc()
-        return Response(
-            body=json.dumps(
-                {
-                    "message": (
-                        f"Could not retrieve reminder with reminder id "
-                        f"{reminder_id}!!"
-                    ),
-                    "error": str(error),
-                },
-            ),
+        raise HTTPException(
             status_code=400,
-            headers={"Content-Type": "application/json"},
+            detail={
+                "message": (
+                    f"Could not retrieve reminder with reminder id "
+                    f"{reminder_id}!!"
+                ),
+                "error": str(error),
+            }
         )
 
 
-def delete_reminder_for_user(reminder_id: str, request_context):
+def delete_reminder_for_user(
+    reminder_id: str,
+    user_details: data_structures.UserDetails
+) -> data_structures.ReminderIdResponse:
     """Delete a reminder for the user making the request.
 
     Args:
         reminder_id: The ID of the reminder to delete
-        request_context: The request context containing user details
+        user_details: The user details from authentication
 
     Returns:
-        Response: JSON response indicating success or failure
+        ReminderIdResponse: Response with reminder ID and success message
+
+    Raises:
+        HTTPException: If deletion fails
     """
     try:
-        user_details = get_user_details_from_context(request_context)
         username = user_details.user_name
         single_reminder_details = DynamoBackend.get_a_reminder_for_a_user(
             reminder_id=reminder_id, user_name=user_details.user_name
@@ -395,42 +347,43 @@ def delete_reminder_for_user(reminder_id: str, request_context):
             f"is deleted."
         )
         send_user_confirmation(username, message)
+
+        return data_structures.ReminderIdResponse(
+            reminderId=reminder_id,
+            message="Reminder successfully deleted!"
+        )
     except Exception as error:
         traceback.print_exc()
-        return Response(
-            body=json.dumps(
-                {
-                    "message": f"Could not delete reminder {reminder_id}!!",
-                    "error": str(error),
-                },
-            ),
+        raise HTTPException(
             status_code=400,
-            headers={"Content-Type": "application/json"},
+            detail={
+                "message": f"Could not delete reminder {reminder_id}!!",
+                "error": str(error),
+            }
         )
-    return Response(
-        body=json.dumps(
-            {"reminderId": reminder_id, "message": "Reminder successfully deleted!"}
-        ),
-        status_code=200,
-        headers={"Content-Type": "application/json"},
-    )
 
 
-def update_reminder_for_user(reminder_id: str, current_request, request_context):
+def update_reminder_for_user(
+    reminder_id: str,
+    update_request: data_structures.UpdateReminderRequest,
+    user_details: data_structures.UserDetails
+) -> data_structures.ReminderIdResponse:
     """Update a reminder for the user making the request.
 
     Args:
         reminder_id: The ID of the reminder to update
-        current_request: The current Chalice request object
-        request_context: The request context containing user details
+        update_request: The update reminder request
+        user_details: The user details from authentication
 
     Returns:
-        Response: JSON response indicating success or failure
+        ReminderIdResponse: Response with reminder ID and success message
+
+    Raises:
+        HTTPException: If update fails
     """
     try:
-        user_details = get_user_details_from_context(request_context)
         username = user_details.user_name
-        request_body = json.loads(current_request.raw_body.decode())
+        request_body = update_request.model_dump(exclude_none=True)
         exisiting_reminder_in_database = DynamoBackend.get_a_reminder_for_a_user(
             reminder_id=reminder_id, user_name=username
         )
@@ -460,36 +413,28 @@ def update_reminder_for_user(reminder_id: str, current_request, request_context)
         DynamoBackend.update_a_reminder(
             reminder_id=reminder_id, updated_reminder=reminder_details_as_dict
         )
+
+        return data_structures.ReminderIdResponse(
+            reminderId=reminder_id,
+            message="Reminder successfully updated!"
+        )
     except ValidationError as error:
         traceback.print_exc()
         # This is a hack to get the error message string in pydantic
         error_message = str(error)
-        return Response(
-            body=json.dumps(
-                {
-                    "message": f"Could not update reminder {reminder_id}!!",
-                    "error": error_message,
-                },
-            ),
+        raise HTTPException(
             status_code=400,
-            headers={"Content-Type": "application/json"},
+            detail={
+                "message": f"Could not update reminder {reminder_id}!!",
+                "error": error_message,
+            }
         )
     except Exception as error:
         traceback.print_exc()
-        return Response(
-            body=json.dumps(
-                {
-                    "message": f"Could not update reminder {reminder_id}!!",
-                    "error": str(error),
-                },
-            ),
+        raise HTTPException(
             status_code=400,
-            headers={"Content-Type": "application/json"},
+            detail={
+                "message": f"Could not update reminder {reminder_id}!!",
+                "error": str(error),
+            }
         )
-    return Response(
-        body=json.dumps(
-            {"reminderId": reminder_id, "message": "Reminder successfully updated!"}
-        ),
-        status_code=200,
-        headers={"Content-Type": "application/json"},
-    )

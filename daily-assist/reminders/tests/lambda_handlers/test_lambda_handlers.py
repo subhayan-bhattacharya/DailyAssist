@@ -5,8 +5,8 @@ import re
 from unittest.mock import MagicMock
 
 import pytest
-from chalicelib.backend.dynamodb import dynamo_backend
-from chalicelib.lambda_handlers import query_and_send_reminders
+from core.backend.dynamodb import dynamo_backend
+from core.lambda_handlers import query_and_send_reminders
 from dateutil.relativedelta import relativedelta
 
 

@@ -8,8 +8,8 @@ from dataclasses import dataclass, field
 from typing import Optional, Sequence
 from zoneinfo import ZoneInfo
 
-from chalicelib.datetime_utils import DEFAULT_DATE_FORMATS, DateTimeUTC, parse_datetime
-from chalicelib.reminder_frequency import (
+from core.datetime_utils import DEFAULT_DATE_FORMATS, DateTimeUTC, parse_datetime
+from core.reminder_frequency import (
     ReminderFrequency,
     calculate_next_reminder_date,
 )
@@ -149,3 +149,74 @@ class SingleReminder(ReminderBase):
     reminder_id: str
     user_id: str
     reminder_creation_time: DateTimeUTC
+
+
+class ShareReminderRequest(BaseModel):
+    """Model for share reminder request."""
+
+    username: str
+
+    @field_validator("username")
+    def validate_username(cls, value: str) -> str:
+        """Validate that the username is not empty."""
+        if not value or not value.strip():
+            raise ValueError("Username cannot be empty")
+        return value.strip()
+
+
+class CreateReminderRequest(BaseModel):
+    """Model for create reminder request."""
+
+    reminder_title: str
+    reminder_description: str
+    reminder_tags: Sequence[str]
+    reminder_frequency: str  # Will be converted to ReminderFrequency enum
+    should_expire: bool
+    reminder_expiration_date_time: Optional[str] = None
+    next_reminder_date_time: Optional[str] = None
+
+    @field_validator("reminder_title")
+    def validate_title(cls, value: str) -> str:
+        """Validate that the title is not empty or whitespace only."""
+        if not value or not value.strip():
+            raise ValueError("Title cannot be empty or whitespace only")
+        return value.strip()
+
+
+class UpdateReminderRequest(BaseModel):
+    """Model for update reminder request (all fields optional)."""
+
+    reminder_title: Optional[str] = None
+    reminder_description: Optional[str] = None
+    reminder_tags: Optional[Sequence[str]] = None
+    reminder_frequency: Optional[str] = None
+    should_expire: Optional[bool] = None
+    reminder_expiration_date_time: Optional[str] = None
+    next_reminder_date_time: Optional[str] = None
+
+    @field_validator("reminder_title")
+    def validate_title(cls, value: Optional[str]) -> Optional[str]:
+        """Validate that the title is not empty or whitespace only."""
+        if value is not None and (not value or not value.strip()):
+            raise ValueError("Title cannot be empty or whitespace only")
+        return value.strip() if value else None
+
+
+class CreateReminderResponse(BaseModel):
+    """Model for create reminder response."""
+
+    reminderId: str
+    message: str
+
+
+class MessageResponse(BaseModel):
+    """Generic message response."""
+
+    message: str
+
+
+class ReminderIdResponse(BaseModel):
+    """Response with reminder ID and message."""
+
+    reminderId: str
+    message: str

@@ -6,8 +6,8 @@ from datetime import datetime
 import pytest
 from app import app
 from chalice.test import Client
-from chalicelib import data_structures
-from chalicelib.backend.dynamodb import dynamo_backend
+from core import data_structures
+from core.backend.dynamodb import dynamo_backend
 from dateutil.relativedelta import relativedelta
 
 
@@ -32,9 +32,9 @@ def test_create_a_new_reminder_normal_use_case(
     reminders_model, reminders, new_reminder_request, mocker
 ):
     """Test the function create a new reminder from app."""
-    mocked_send_confirmation = mocker.patch("chalicelib.utils.send_user_confirmation")
+    mocked_send_confirmation = mocker.patch("core.utils.send_user_confirmation")
     mocked_get_user_details = mocker.patch(
-        "chalicelib.utils.get_user_details_from_context"
+        "core.utils.get_user_details_from_context"
     )
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -76,9 +76,9 @@ def test_share_a_reminder(
     reminders_model, reminders, new_reminder_request, new_reminder, mocker
 ):
     """Share a reminder with another user."""
-    mocked_send_confirmation = mocker.patch("chalicelib.utils.send_user_confirmation")
+    mocked_send_confirmation = mocker.patch("core.utils.send_user_confirmation")
     mocked_get_user_details = mocker.patch(
-        "chalicelib.utils.get_user_details_from_context"
+        "core.utils.get_user_details_from_context"
     )
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -138,7 +138,7 @@ def test_view_list_of_all_reminders_for_a_user(
 ):
     """Test the function get_all_reminders_for_a_user."""
     mocked_get_user_details = mocker.patch(
-        "chalicelib.utils.get_user_details_from_context"
+        "core.utils.get_user_details_from_context"
     )
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -178,7 +178,7 @@ def test_view_list_of_reminders_filtered_by_tags(
 ):
     """Test viewing filtered reminders by tags."""
     mocked_get_user_details = mocker.patch(
-        "chalicelib.utils.get_user_details_from_context"
+        "core.utils.get_user_details_from_context"
     )
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -216,7 +216,7 @@ def test_view_list_of_reminders_filtered_by_tags(
 def test_get_remider_tags(reminders_model, reminders, new_reminder, mocker):
     """Test getting reminder tags."""
     mocked_get_user_details = mocker.patch(
-        "chalicelib.utils.get_user_details_from_context"
+        "core.utils.get_user_details_from_context"
     )
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -255,7 +255,7 @@ def test_get_remider_tags(reminders_model, reminders, new_reminder, mocker):
 def test_get_details_about_a_reminder(reminders_model, reminders, new_reminder, mocker):
     """Test getting details about a specific reminder."""
     mocked_get_user_details = mocker.patch(
-        "chalicelib.utils.get_user_details_from_context"
+        "core.utils.get_user_details_from_context"
     )
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -279,9 +279,9 @@ def test_get_details_about_a_reminder(reminders_model, reminders, new_reminder, 
 
 def test_delete_a_reminder(reminders_model, reminders, new_reminder, mocker):
     """Test deleting a reminder."""
-    mocked_send_confirmation = mocker.patch("chalicelib.utils.send_user_confirmation")
+    mocked_send_confirmation = mocker.patch("core.utils.send_user_confirmation")
     mocked_get_user_details = mocker.patch(
-        "chalicelib.utils.get_user_details_from_context"
+        "core.utils.get_user_details_from_context"
     )
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -310,7 +310,7 @@ def test_delete_a_reminder(reminders_model, reminders, new_reminder, mocker):
 def test_updating_a_reminder(reminders_model, reminders, new_reminder, mocker):
     """Test updating a reminder."""
     mocked_get_user_details = mocker.patch(
-        "chalicelib.utils.get_user_details_from_context"
+        "core.utils.get_user_details_from_context"
     )
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -346,7 +346,7 @@ def test_updating_a_reminder(reminders_model, reminders, new_reminder, mocker):
 def test_updating_nonexistent_reminder(reminders_model, reminders, mocker):
     """Test updating a reminder that doesn't exist."""
     mocked_get_user_details = mocker.patch(
-        "chalicelib.utils.get_user_details_from_context"
+        "core.utils.get_user_details_from_context"
     )
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -376,7 +376,7 @@ def test_updating_reminder_with_invalid_json(
 ):
     """Test updating a reminder with invalid JSON in request body."""
     mocked_get_user_details = mocker.patch(
-        "chalicelib.utils.get_user_details_from_context"
+        "core.utils.get_user_details_from_context"
     )
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -406,7 +406,7 @@ def test_updating_reminder_with_empty_title(
 ):
     """Test updating a reminder with empty title (should fail validation)."""
     mocked_get_user_details = mocker.patch(
-        "chalicelib.utils.get_user_details_from_context"
+        "core.utils.get_user_details_from_context"
     )
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -439,7 +439,7 @@ def test_updating_reminder_with_whitespace_only_title(
 ):
     """Test updating a reminder with whitespace-only title (should fail validation)."""
     mocked_get_user_details = mocker.patch(
-        "chalicelib.utils.get_user_details_from_context"
+        "core.utils.get_user_details_from_context"
     )
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -472,7 +472,7 @@ def test_updating_reminder_with_invalid_date_format(
 ):
     """Test updating a reminder with invalid date format."""
     mocked_get_user_details = mocker.patch(
-        "chalicelib.utils.get_user_details_from_context"
+        "core.utils.get_user_details_from_context"
     )
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -504,7 +504,7 @@ def test_updating_reminder_with_invalid_frequency(
 ):
     """Test updating a reminder with invalid frequency."""
     mocked_get_user_details = mocker.patch(
-        "chalicelib.utils.get_user_details_from_context"
+        "core.utils.get_user_details_from_context"
     )
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -536,7 +536,7 @@ def test_updating_reminder_frequency_change(
 ):
     """Test updating a reminder's frequency successfully."""
     mocked_get_user_details = mocker.patch(
-        "chalicelib.utils.get_user_details_from_context"
+        "core.utils.get_user_details_from_context"
     )
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -576,7 +576,7 @@ def test_updating_reminder_with_next_reminder_date(
 ):
     """Test updating a reminder with explicit next_reminder_date_time."""
     mocked_get_user_details = mocker.patch(
-        "chalicelib.utils.get_user_details_from_context"
+        "core.utils.get_user_details_from_context"
     )
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -609,7 +609,7 @@ def test_updating_reminder_should_expire_toggle(
 ):
     """Test updating a reminder's should_expire flag."""
     mocked_get_user_details = mocker.patch(
-        "chalicelib.utils.get_user_details_from_context"
+        "core.utils.get_user_details_from_context"
     )
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -647,7 +647,7 @@ def test_updating_reminder_should_expire_toggle(
 def test_updating_reminder_tags(reminders_model, reminders, new_reminder, mocker):
     """Test updating a reminder's tags."""
     mocked_get_user_details = mocker.patch(
-        "chalicelib.utils.get_user_details_from_context"
+        "core.utils.get_user_details_from_context"
     )
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -686,7 +686,7 @@ def test_updating_reminder_partial_update(
 ):
     """Test updating only one field of a reminder (partial update)."""
     mocked_get_user_details = mocker.patch(
-        "chalicelib.utils.get_user_details_from_context"
+        "core.utils.get_user_details_from_context"
     )
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -729,7 +729,7 @@ def test_updating_reminder_with_past_expiration_date(
 ):
     """Test updating a reminder with past expiration date (should fail)."""
     mocked_get_user_details = mocker.patch(
-        "chalicelib.utils.get_user_details_from_context"
+        "core.utils.get_user_details_from_context"
     )
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -764,7 +764,7 @@ def test_updating_reminder_with_malformed_request_body(
 ):
     """Test updating a reminder with completely malformed request body."""
     mocked_get_user_details = mocker.patch(
-        "chalicelib.utils.get_user_details_from_context"
+        "core.utils.get_user_details_from_context"
     )
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -792,7 +792,7 @@ def test_updating_reminder_with_empty_tags_list(
 ):
     """Test updating a reminder with empty tags list."""
     mocked_get_user_details = mocker.patch(
-        "chalicelib.utils.get_user_details_from_context"
+        "core.utils.get_user_details_from_context"
     )
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -831,7 +831,7 @@ def test_updating_reminder_with_once_frequency_no_expiration(
 ):
     """Test updating a reminder to 'once' frequency without expiration date."""
     mocked_get_user_details = mocker.patch(
-        "chalicelib.utils.get_user_details_from_context"
+        "core.utils.get_user_details_from_context"
     )
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -865,7 +865,7 @@ def test_updating_reminder_with_extremely_long_title(
 ):
     """Test updating a reminder with extremely long title."""
     mocked_get_user_details = mocker.patch(
-        "chalicelib.utils.get_user_details_from_context"
+        "core.utils.get_user_details_from_context"
     )
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -907,7 +907,7 @@ def test_updating_reminder_with_special_characters_in_fields(
 ):
     """Test updating a reminder with special characters in various fields."""
     mocked_get_user_details = mocker.patch(
-        "chalicelib.utils.get_user_details_from_context"
+        "core.utils.get_user_details_from_context"
     )
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"
@@ -948,7 +948,7 @@ def test_updating_reminder_concurrent_update_scenario(
 ):
     """Test updating a reminder that might have been modified by another process."""
     mocked_get_user_details = mocker.patch(
-        "chalicelib.utils.get_user_details_from_context"
+        "core.utils.get_user_details_from_context"
     )
     mocked_get_user_details.return_value = data_structures.UserDetails(
         user_name="test_user_1", user_email="test@gmail.com"

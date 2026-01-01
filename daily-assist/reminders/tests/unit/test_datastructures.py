@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-import chalicelib.data_structures as data_structures
+import core.data_structures as data_structures
 import pydantic
 import pytest
 from dateutil.relativedelta import relativedelta

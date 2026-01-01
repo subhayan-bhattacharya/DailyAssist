@@ -7,7 +7,7 @@ single-user and shared reminder scenarios.
 
 from datetime import datetime
 
-from chalicelib.backend.dynamodb import dynamo_backend
+from core.backend.dynamodb import dynamo_backend
 from dateutil.relativedelta import relativedelta
 
 

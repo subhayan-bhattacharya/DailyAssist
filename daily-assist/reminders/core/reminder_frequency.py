@@ -6,7 +6,7 @@ import datetime
 from enum import Enum
 from typing import Optional
 
-from chalicelib.datetime_utils import DateTimeUTC
+from core.datetime_utils import DateTimeUTC
 from dateutil.relativedelta import relativedelta
 
 

@@ -4,8 +4,8 @@ import datetime
 import logging
 
 import boto3
-from chalicelib import data_structures
-from chalicelib.backend.dynamodb.dynamo_backend import DynamoBackend
+from core import data_structures
+from core.backend.dynamodb.dynamo_backend import DynamoBackend
 
 
 def get_reminder_description_for_reminders_for_today(user):
