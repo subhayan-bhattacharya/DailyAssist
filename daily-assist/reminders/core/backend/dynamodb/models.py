@@ -1,5 +1,7 @@
 """Module having the models for pynamodb."""
 
+import os
+
 from pynamodb.attributes import (
     BooleanAttribute,
     UnicodeAttribute,
@@ -71,3 +73,11 @@ class Reminders(Model):
 
     # Global Secondary Index
     view_index = UserIdReminderTitleIndex()
+
+
+# Configure for local DynamoDB if ENVIRONMENT is set to local
+if os.getenv("ENVIRONMENT") == "local":
+    dynamodb_endpoint = os.getenv("DYNAMODB_ENDPOINT", "http://localhost:8000")
+    Reminders.Meta.host = dynamodb_endpoint
+    Reminders.Meta.aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID", "dummy")
+    Reminders.Meta.aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY", "dummy")
