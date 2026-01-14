@@ -1,2 +1,0 @@
-# For production deployment
--r requirements/prod.txt

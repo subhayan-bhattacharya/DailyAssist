@@ -3,6 +3,7 @@
 import datetime
 import json
 import logging
+import os
 import traceback
 import uuid
 
@@ -21,6 +22,10 @@ def send_user_confirmation(username, message):
         username: The username to send the confirmation to
         message: The message content to send
     """
+    if os.getenv("ENVIRONMENT") == "local":
+        logging.info(f"[LOCAL] Skipping SNS confirmation for {username}: {message}")
+        return
+
     user_subscriptions = filter_sns_arn_by_user(username)
     for subscriber in user_subscriptions:
         _send_reminder_message(subscriber["topicArn"], message)

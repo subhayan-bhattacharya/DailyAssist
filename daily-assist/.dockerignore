@@ -1,0 +1,42 @@
+# Test files
+reminders/tests/
+reminders/.pytest_cache/
+
+# Old deployment config
+reminders/.chalice/
+
+# Terraform (not needed in production)
+reminders/terraform/
+
+# Scripts (not needed in production)
+reminders/scripts/
+
+# Documentation
+*.md
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.*
+
+# Development Dockerfile
+reminders/Dockerfile.dev
+
+# Docker compose
+reminders/docker-compose.yml

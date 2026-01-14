@@ -12,6 +12,9 @@ from dateutil.relativedelta import relativedelta
 from testcontainers.core.container import DockerContainer
 from testcontainers.core.waiting_utils import wait_for_logs
 
+# Set ENVIRONMENT to local for testing (enables mock user in get_user_context)
+os.environ["ENVIRONMENT"] = "local"
+
 # Configure project path
 project_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 logging.info("Using project root: %s", project_root)

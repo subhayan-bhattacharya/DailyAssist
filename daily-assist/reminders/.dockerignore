@@ -1,0 +1,37 @@
+# Test files
+tests/
+.pytest_cache/
+
+# Old deployment config
+.chalice/
+
+# Terraform (not needed in production)
+terraform/
+
+# Scripts (not needed in production)
+scripts/
+
+# Documentation
+*.md
+BUG_REPORT_UPDATE_REMINDER.md
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.*

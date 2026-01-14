@@ -1,0 +1,23 @@
+# Development Dockerfile - runs FastAPI directly with uvicorn
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# Copy dependency files
+COPY pyproject.toml uv.lock ./
+
+# Install uv
+RUN pip install uv
+
+# Install dependencies (including dev dependencies for local testing)
+RUN uv export --frozen --no-hashes > requirements.txt && \
+    uv pip install --system --no-cache -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Expose port for FastAPI
+EXPOSE 8000
+
+# Run uvicorn directly (not Lambda)
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
