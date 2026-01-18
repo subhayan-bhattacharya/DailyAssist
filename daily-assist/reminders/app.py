@@ -1,10 +1,17 @@
 """Main FastAPI application for daily assist reminders service."""
 
+import json
+import logging
 import os
 from typing import Annotated, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
+
+# Configure logging for Lambda (prints to CloudWatch)
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 from core import data_structures
 from core.lambda_handlers import (
@@ -22,6 +29,18 @@ from core.utils import (
 )
 
 app = FastAPI(title="Daily Assist Reminders API", version="1.0.0")
+
+# CORS configuration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",  # Vite dev server
+        "http://localhost:3000",  # Alternative dev port
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # Dependency to extract user details from Lambda event context
@@ -168,4 +187,21 @@ def update_a_reminder(
 
 
 # Mangum handler for AWS Lambda
-handler = Mangum(app)
+_mangum_handler = Mangum(app)
+
+
+def handler(event, context):
+    """Lambda handler with logging."""
+    logger.info("=== Lambda invoked ===")
+    logger.info(f"HTTP Method: {event.get('httpMethod', 'N/A')}")
+    logger.info(f"Path: {event.get('path', 'N/A')}")
+    logger.info(f"Headers: {json.dumps(event.get('headers', {}))}")
+    logger.info(f"Request Context: {json.dumps(event.get('requestContext', {}), default=str)}")
+
+    try:
+        response = _mangum_handler(event, context)
+        logger.info(f"Response status: {response.get('statusCode', 'N/A')}")
+        return response
+    except Exception as e:
+        logger.error(f"Lambda error: {str(e)}", exc_info=True)
+        raise

@@ -225,7 +225,101 @@ resource "aws_api_gateway_integration" "root_lambda" {
   uri                     = aws_lambda_function.api.invoke_arn
 }
 
-# API Gateway deployment
+# =============================================================================
+# CORS - OPTIONS method for proxy resource (no auth, returns CORS headers)
+# =============================================================================
+resource "aws_api_gateway_method" "proxy_options" {
+  rest_api_id   = data.aws_api_gateway_rest_api.existing_api.id
+  resource_id   = aws_api_gateway_resource.proxy.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "proxy_options" {
+  rest_api_id = data.aws_api_gateway_rest_api.existing_api.id
+  resource_id = aws_api_gateway_resource.proxy.id
+  http_method = aws_api_gateway_method.proxy_options.http_method
+  type        = "MOCK"
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "proxy_options" {
+  rest_api_id = data.aws_api_gateway_rest_api.existing_api.id
+  resource_id = aws_api_gateway_resource.proxy.id
+  http_method = aws_api_gateway_method.proxy_options.http_method
+  status_code = "200"
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+  response_models = { "application/json" = "Empty" }
+}
+
+resource "aws_api_gateway_integration_response" "proxy_options" {
+  rest_api_id = data.aws_api_gateway_rest_api.existing_api.id
+  resource_id = aws_api_gateway_resource.proxy.id
+  http_method = aws_api_gateway_method.proxy_options.http_method
+  status_code = "200"
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods" = "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+  depends_on = [aws_api_gateway_integration.proxy_options]
+}
+
+# =============================================================================
+# CORS - OPTIONS method for root resource
+# =============================================================================
+resource "aws_api_gateway_method" "root_options" {
+  rest_api_id   = data.aws_api_gateway_rest_api.existing_api.id
+  resource_id   = data.aws_api_gateway_resource.root.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "root_options" {
+  rest_api_id = data.aws_api_gateway_rest_api.existing_api.id
+  resource_id = data.aws_api_gateway_resource.root.id
+  http_method = aws_api_gateway_method.root_options.http_method
+  type        = "MOCK"
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "root_options" {
+  rest_api_id = data.aws_api_gateway_rest_api.existing_api.id
+  resource_id = data.aws_api_gateway_resource.root.id
+  http_method = aws_api_gateway_method.root_options.http_method
+  status_code = "200"
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+  response_models = { "application/json" = "Empty" }
+}
+
+resource "aws_api_gateway_integration_response" "root_options" {
+  rest_api_id = data.aws_api_gateway_rest_api.existing_api.id
+  resource_id = data.aws_api_gateway_resource.root.id
+  http_method = aws_api_gateway_method.root_options.http_method
+  status_code = "200"
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods" = "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+  depends_on = [aws_api_gateway_integration.root_options]
+}
+
+# =============================================================================
+# API Gateway Deployment
+# =============================================================================
 resource "aws_api_gateway_deployment" "api" {
   rest_api_id = data.aws_api_gateway_rest_api.existing_api.id
 
@@ -233,6 +327,8 @@ resource "aws_api_gateway_deployment" "api" {
     redeployment = sha256(jsonencode([
       aws_api_gateway_integration.proxy_lambda.id,
       aws_api_gateway_integration.root_lambda.id,
+      aws_api_gateway_integration.proxy_options.id,
+      aws_api_gateway_integration.root_options.id,
     ]))
   }
 
@@ -242,7 +338,9 @@ resource "aws_api_gateway_deployment" "api" {
 
   depends_on = [
     aws_api_gateway_integration.proxy_lambda,
-    aws_api_gateway_integration.root_lambda
+    aws_api_gateway_integration.root_lambda,
+    aws_api_gateway_integration_response.proxy_options,
+    aws_api_gateway_integration_response.root_options,
   ]
 }
 
