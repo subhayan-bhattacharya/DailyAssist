@@ -129,11 +129,17 @@ class AllRemindersPerUser(BaseModel):
     user_id: str
     reminder_title: str
     reminder_id: str
+    reminder_tags: Sequence[str]
     reminder_expiration_date_time: Optional[DateTimeUTC]
 
     model_config = ConfigDict(
         from_attributes=True, json_encoders={datetime.datetime: format_datetime}
     )
+
+    @field_validator("reminder_tags", mode="before")
+    def convert_to_list_if_set(cls, value):
+        """Convert set to list if needed."""
+        return list(value) if isinstance(value, set) else value
 
 
 class UserDetails(BaseModel):

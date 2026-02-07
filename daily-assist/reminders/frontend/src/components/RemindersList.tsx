@@ -4,6 +4,7 @@ import { fetchAuthSession } from 'aws-amplify/auth';
 interface Reminder {
   reminder_id: string;
   reminder_title: string;
+  reminder_tags: string[];
   reminder_expiration_date_time: string | null;
 }
 
@@ -139,12 +140,23 @@ export function RemindersList() {
             className={`reminder-item ${selectedReminder?.reminder_id === reminder.reminder_id ? 'selected' : ''}`}
             onClick={() => fetchReminderDetail(reminder.reminder_id)}
           >
-            <h3>{reminder.reminder_title}</h3>
-            {reminder.reminder_expiration_date_time && (
-              <p className="expiration-date">
-                Expires: {formatDate(reminder.reminder_expiration_date_time)}
-              </p>
-            )}
+            <div className="reminder-item-content">
+              <div className="reminder-item-left">
+                <h3>{reminder.reminder_title}</h3>
+                {reminder.reminder_expiration_date_time && (
+                  <p className="expiration-date">
+                    Expires: {formatDate(reminder.reminder_expiration_date_time)}
+                  </p>
+                )}
+              </div>
+              {reminder.reminder_tags && reminder.reminder_tags.length > 0 && (
+                <div className="reminder-item-tags">
+                  {reminder.reminder_tags.map((tag) => (
+                    <span key={tag} className="tag">{tag}</span>
+                  ))}
+                </div>
+              )}
+            </div>
           </li>
         ))}
       </ul>

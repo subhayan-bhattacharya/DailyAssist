@@ -318,6 +318,29 @@ resource "aws_api_gateway_integration_response" "root_options" {
 }
 
 # =============================================================================
+# CORS - Gateway Responses (adds CORS headers to API Gateway-generated errors)
+# =============================================================================
+resource "aws_api_gateway_gateway_response" "default_4xx" {
+  rest_api_id   = data.aws_api_gateway_rest_api.existing_api.id
+  response_type = "DEFAULT_4XX"
+  response_parameters = {
+    "gatewayresponse.header.Access-Control-Allow-Origin"  = "'*'"
+    "gatewayresponse.header.Access-Control-Allow-Headers" = "'Content-Type,Authorization'"
+    "gatewayresponse.header.Access-Control-Allow-Methods" = "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+  }
+}
+
+resource "aws_api_gateway_gateway_response" "default_5xx" {
+  rest_api_id   = data.aws_api_gateway_rest_api.existing_api.id
+  response_type = "DEFAULT_5XX"
+  response_parameters = {
+    "gatewayresponse.header.Access-Control-Allow-Origin"  = "'*'"
+    "gatewayresponse.header.Access-Control-Allow-Headers" = "'Content-Type,Authorization'"
+    "gatewayresponse.header.Access-Control-Allow-Methods" = "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+  }
+}
+
+# =============================================================================
 # API Gateway Deployment
 # =============================================================================
 resource "aws_api_gateway_deployment" "api" {
@@ -329,6 +352,8 @@ resource "aws_api_gateway_deployment" "api" {
       aws_api_gateway_integration.root_lambda.id,
       aws_api_gateway_integration.proxy_options.id,
       aws_api_gateway_integration.root_options.id,
+      aws_api_gateway_gateway_response.default_4xx.id,
+      aws_api_gateway_gateway_response.default_5xx.id,
     ]))
   }
 
@@ -341,6 +366,8 @@ resource "aws_api_gateway_deployment" "api" {
     aws_api_gateway_integration.root_lambda,
     aws_api_gateway_integration_response.proxy_options,
     aws_api_gateway_integration_response.root_options,
+    aws_api_gateway_gateway_response.default_4xx,
+    aws_api_gateway_gateway_response.default_5xx,
   ]
 }
 

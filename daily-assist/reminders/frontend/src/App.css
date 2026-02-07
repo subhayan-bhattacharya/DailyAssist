@@ -112,6 +112,25 @@
   color: #333;
 }
 
+.reminder-item-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.reminder-item-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.reminder-item-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  margin-left: 16px;
+}
+
 .reminder-item p {
   margin: 0;
   color: #666;
