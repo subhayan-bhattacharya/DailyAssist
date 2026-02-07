@@ -9,36 +9,44 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 30px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #e0e0e0;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #1a237e, #283593);
+  border-radius: 10px;
+  color: white;
+  box-shadow: 0 2px 8px rgba(26, 35, 126, 0.25);
 }
 
 .app-header h1 {
   margin: 0;
-  color: #333;
+  color: white;
+  font-weight: 600;
+  letter-spacing: -0.3px;
 }
 
 .user-info {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 14px;
 }
 
 .user-info span {
-  color: #666;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.9em;
 }
 
 .sign-out-btn {
-  padding: 8px 16px;
-  background-color: #ff4d4d;
+  padding: 7px 18px;
+  background-color: rgba(255, 255, 255, 0.15);
   color: white;
-  border: none;
-  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
   cursor: pointer;
+  font-size: 0.85em;
+  transition: background-color 0.2s;
 }
 
 .sign-out-btn:hover {
-  background-color: #e60000;
+  background-color: rgba(255, 255, 255, 0.25);
 }
 
 .reminders-list {
@@ -48,9 +56,15 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.reminders-list h2 {
-  margin-top: 0;
+.reminders-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 20px;
+}
+
+.reminders-list h2 {
+  margin: 0;
   color: #333;
 }
 
@@ -61,7 +75,6 @@
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  margin-bottom: 20px;
 }
 
 .refresh-btn:hover {
@@ -80,38 +93,105 @@
   border-radius: 8px;
   margin-bottom: 15px;
   background: #fafafa;
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.reminder-item:hover {
+  border-color: #1a237e;
+  background: #f0f0fa;
+}
+
+.reminder-item.selected {
+  border-color: #1a237e;
+  background: #e8eaf6;
 }
 
 .reminder-item h3 {
-  margin: 0 0 10px 0;
+  margin: 0 0 6px 0;
   color: #333;
 }
 
 .reminder-item p {
-  margin: 0 0 10px 0;
+  margin: 0;
   color: #666;
-}
-
-.reminder-meta {
-  display: flex;
-  gap: 20px;
   font-size: 0.9em;
-  color: #888;
-  margin-bottom: 10px;
 }
 
-.tags {
+.reminder-detail {
+  margin-top: 20px;
+  padding: 20px;
+  border: 1px solid #c5cae9;
+  border-radius: 8px;
+  background: #e8eaf6;
+}
+
+.detail-header {
   display: flex;
-  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.detail-header h3 {
+  margin: 0;
+  color: #1a237e;
+}
+
+.close-btn {
+  padding: 5px 14px;
+  background: transparent;
+  color: #666;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85em;
+}
+
+.close-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.detail-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detail-row {
+  display: flex;
+  gap: 14px;
+  font-size: 0.9em;
+  align-items: baseline;
+}
+
+.detail-label {
+  min-width: 120px;
+  font-weight: 700;
+  color: #1a237e;
+  flex-shrink: 0;
+}
+
+.detail-value {
+  color: #1a1a1a;
+  font-weight: 500;
+  font-size: 0.95em;
+}
+
+.detail-tags {
+  display: flex;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .tag {
   background-color: #e3f2fd;
-  color: #1976d2;
-  padding: 4px 10px;
+  color: #1565c0;
+  padding: 3px 12px;
   border-radius: 16px;
   font-size: 0.85em;
+  font-weight: 500;
+  border: 1px solid #bbdefb;
 }
 
 .loading, .empty {
@@ -134,4 +214,3 @@
   border: none;
   border-radius: 4px;
   cursor: pointer;
-}
