@@ -34,6 +34,7 @@ app = FastAPI(title="Daily Assist Reminders API", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "https://poulomi-subhayan.click",
         "http://localhost:5173",  # Vite dev server
         "http://localhost:3000",  # Alternative dev port
     ],

@@ -70,6 +70,11 @@ export function RemindersList() {
       }
 
       const data = await response.json();
+      data.sort((a: Reminder, b: Reminder) => {
+        const aDate = a.reminder_expiration_date_time ?? '';
+        const bDate = b.reminder_expiration_date_time ?? '';
+        return aDate.localeCompare(bDate);
+      });
       setReminders(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
