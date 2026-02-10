@@ -7,6 +7,9 @@ import boto3
 from core import data_structures
 from core.backend.dynamodb.dynamo_backend import DynamoBackend
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 
 def get_reminder_description_for_reminders_for_today(user):
     """Get the reminder description from the database for today's reminders."""
@@ -86,6 +89,7 @@ def filter_sns_arn_by_user(username):
 
 def query_and_send_reminders(event, context):
     """Query Dynamodb table and send reminders if has to be reminded today."""
+    logger.info("Starting query_and_send_reminders handler")
     # At the moment the lambda function needs to have the users for whom
     # we need to check the reminders, this is done in the interest of cost
     # otherwise we have to do a scan on the table
@@ -95,13 +99,17 @@ def query_and_send_reminders(event, context):
         raise ValueError(
             "The data for the lambda function needs to accept a list of users!"
         )
+    logger.info("Processing %d user(s)", len(users))
     reminders_for_which_we_need_to_remind = {"details": {}}
     for user in users:
         username = user["username"]
+        logger.info("Processing reminders for user: %s", username)
         # Get the details of the user email from cognito
         user_email = get_user_email_from_pool(username, user_pool_id)
+        logger.info("Fetched email for user %s: %s", username, user_email)
         # Get the reminder description from the database
         descriptions = get_reminder_description_for_reminders_for_today(username)
+        logger.info("Found %d reminder(s) due today for user %s", len(descriptions), username)
         reminders_for_which_we_need_to_remind["details"][username] = {
             "email": user_email
         }
@@ -110,16 +118,18 @@ def query_and_send_reminders(event, context):
         reminders_for_which_we_need_to_remind["details"][username]["notifications"] = []
         for message_description in descriptions:
             message_arn = user["message_arn"]
+            logger.info("Sending SNS notification to %s via topic %s", username, message_arn)
+            sns_response = send_reminder_message(message_arn, message_description)
+            logger.info("SNS notification sent for user %s, MessageId: %s", username, sns_response.get("MessageId"))
             reminders_for_which_we_need_to_remind["details"][username][
                 "notifications"
             ].append(
                 {
-                    "sns_response": send_reminder_message(
-                        message_arn, message_description
-                    ),
+                    "sns_response": sns_response,
                     "message_body": message_description,
                 }
             )
+    logger.info("Finished query_and_send_reminders handler")
     return reminders_for_which_we_need_to_remind
 
 
@@ -129,14 +139,17 @@ def delete_expired_reminders(event, context):
     Just like the previous function we need to have the users
     for whom we like to do the deletion.
     """
+    logger.info("Starting delete_expired_reminders handler")
     users = event.get("users")
     if users is None:
         raise ValueError(
             "The data for the lambda function needs to accept a list of users!"
         )
+    logger.info("Processing %d user(s)", len(users))
     details = {}
     for user in users:
         username = user["username"]
+        logger.info("Checking expired reminders for user: %s", username)
         details[username] = {"deleted": [], "not_deleted": []}
         reminders_for_user = DynamoBackend.get_all_reminders_for_a_user(
             user_id=username
@@ -149,6 +162,12 @@ def delete_expired_reminders(event, context):
                 parsed_reminder.reminder_expiration_date_time.date()
                 < datetime.datetime.now().date()
             ):
+                logger.info(
+                    "Deleting expired reminder '%s' (id: %s) for user %s",
+                    parsed_reminder.reminder_title,
+                    parsed_reminder.reminder_id,
+                    username,
+                )
                 details[username]["deleted"].append(parsed_reminder.reminder_title)
                 DynamoBackend.delete_a_reminder(reminder_id=parsed_reminder.reminder_id)
             else:
@@ -159,4 +178,8 @@ def delete_expired_reminders(event, context):
                     }
                 )
 
+    logger.info(
+        "Finished delete_expired_reminders handler. Summary: %s",
+        {u: {"deleted": len(d["deleted"]), "not_deleted": len(d["not_deleted"])} for u, d in details.items()},
+    )
     return details
