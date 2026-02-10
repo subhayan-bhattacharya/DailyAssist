@@ -1,3 +1,27 @@
+.login-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.login-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-size: 2.6rem;
+  color: #1a237e;
+  margin: 0 0 32px 0;
+  letter-spacing: 1px;
+  text-align: center;
+}
+
 .app-container {
   max-width: 800px;
   margin: 0 auto;
@@ -63,6 +87,11 @@
   margin-bottom: 20px;
 }
 
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .reminders-list h2 {
   margin: 0;
   color: #333;
@@ -116,6 +145,51 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
+}
+
+.reminder-item-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.edit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  background: transparent;
+  color: #999;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.2s, background-color 0.2s;
+}
+
+.edit-btn:hover {
+  color: #1a237e;
+  background-color: rgba(26, 35, 126, 0.08);
+}
+
+.delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  background: transparent;
+  color: #999;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.2s, background-color 0.2s;
+}
+
+.delete-btn:hover {
+  color: #d32f2f;
+  background-color: rgba(211, 47, 47, 0.08);
 }
 
 .reminder-item-left {
@@ -233,3 +307,91 @@
   border: none;
   border-radius: 4px;
   cursor: pointer;
+}
+
+.add-btn {
+  padding: 8px 16px;
+  background-color: #1a237e;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+
+.add-btn:hover {
+  background-color: #283593;
+}
+
+.add-btn:disabled {
+  background-color: #9fa8da;
+  cursor: not-allowed;
+}
+
+.add-form {
+  margin-bottom: 20px;
+  padding: 20px;
+  border: 1px solid #c5cae9;
+  border-radius: 8px;
+  background: #e8eaf6;
+}
+
+.add-form h3 {
+  margin: 0 0 16px 0;
+  color: #1a237e;
+}
+
+.form-group {
+  margin-bottom: 14px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.85em;
+  font-weight: 600;
+  color: #333;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  font-size: 0.9em;
+  box-sizing: border-box;
+}
+
+.form-textarea {
+  resize: vertical;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: #1a237e;
+  box-shadow: 0 0 0 2px rgba(26, 35, 126, 0.15);
+}
+
+.form-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  font-size: 0.9em;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.form-error {
+  color: #d32f2f;
+  font-size: 0.85em;
+  margin: 8px 0 0 0;
+}

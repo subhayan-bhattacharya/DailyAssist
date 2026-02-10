@@ -13,7 +13,14 @@ function AppContent() {
   }, [route, skipVerification]);
 
   if (route !== 'authenticated') {
-    return <Authenticator hideSignUp />;
+    return (
+      <div className="login-page">
+        <div className="login-container">
+          <h1 className="login-title">Poulomi & Subhayan</h1>
+          <Authenticator hideSignUp />
+        </div>
+      </div>
+    );
   }
 
   return (
