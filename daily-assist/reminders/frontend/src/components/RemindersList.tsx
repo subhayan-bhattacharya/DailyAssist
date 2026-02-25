@@ -71,9 +71,10 @@ export function RemindersList() {
 
       const data = await response.json();
       data.sort((a: Reminder, b: Reminder) => {
-        const aDate = a.reminder_expiration_date_time ?? '';
-        const bDate = b.reminder_expiration_date_time ?? '';
-        return aDate.localeCompare(bDate);
+        if (a.reminder_expiration_date_time === null && b.reminder_expiration_date_time === null) return 0;
+        if (a.reminder_expiration_date_time === null) return 1;
+        if (b.reminder_expiration_date_time === null) return -1;
+        return new Date(a.reminder_expiration_date_time).getTime() - new Date(b.reminder_expiration_date_time).getTime();
       });
       setReminders(data);
     } catch (err) {

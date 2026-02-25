@@ -229,6 +229,8 @@
 .detail-header h3 {
   margin: 0;
   color: #1a237e;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .close-btn {
@@ -269,6 +271,9 @@
   color: #1a1a1a;
   font-weight: 500;
   font-size: 0.95em;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  min-width: 0;
 }
 
 .detail-tags {
