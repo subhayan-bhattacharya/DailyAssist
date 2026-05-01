@@ -328,6 +328,9 @@ resource "aws_api_gateway_gateway_response" "default_4xx" {
     "gatewayresponse.header.Access-Control-Allow-Headers" = "'Content-Type,Authorization'"
     "gatewayresponse.header.Access-Control-Allow-Methods" = "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
   }
+  response_templates = {
+    "application/json" = "{\"message\":$context.error.messageString}"
+  }
 }
 
 resource "aws_api_gateway_gateway_response" "default_5xx" {
@@ -337,6 +340,9 @@ resource "aws_api_gateway_gateway_response" "default_5xx" {
     "gatewayresponse.header.Access-Control-Allow-Origin"  = "'https://poulomi-subhayan.click'"
     "gatewayresponse.header.Access-Control-Allow-Headers" = "'Content-Type,Authorization'"
     "gatewayresponse.header.Access-Control-Allow-Methods" = "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+  }
+  response_templates = {
+    "application/json" = "{\"message\":$context.error.messageString}"
   }
 }
 

@@ -42,8 +42,8 @@ data "archive_file" "lambda_code" {
   output_path = "${path.module}/lambda_code.zip"
 
   source {
-    content  = file("${path.module}/../../app.py")
-    filename = "app.py"
+    content  = file("${path.module}/../../scheduled_handlers.py")
+    filename = "scheduled_handlers.py"
   }
 
   dynamic "source" {
@@ -60,7 +60,7 @@ data "archive_file" "lambda_code" {
 resource "aws_lambda_function" "send_reminders" {
   function_name    = var.send_reminders_function_name
   role             = data.aws_iam_role.lambda_role.arn
-  handler          = "app.lambda_query_and_send_reminders_handler"
+  handler          = "scheduled_handlers.lambda_query_and_send_reminders_handler"
   runtime          = var.lambda_runtime
   timeout          = var.lambda_timeout
   memory_size      = var.lambda_memory_size
@@ -73,7 +73,7 @@ resource "aws_lambda_function" "send_reminders" {
 resource "aws_lambda_function" "delete_expired" {
   function_name    = var.delete_expired_function_name
   role             = data.aws_iam_role.lambda_role.arn
-  handler          = "app.lambda_delete_expired_reminders_handler"
+  handler          = "scheduled_handlers.lambda_delete_expired_reminders_handler"
   runtime          = var.lambda_runtime
   timeout          = var.lambda_timeout
   memory_size      = var.lambda_memory_size

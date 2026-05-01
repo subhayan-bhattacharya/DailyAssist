@@ -14,10 +14,6 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 from core import data_structures
-from core.lambda_handlers import (
-    delete_expired_reminders,
-    query_and_send_reminders,
-)
 from core.utils import (
     create_new_reminder,
     delete_reminder_for_user,
@@ -80,18 +76,6 @@ def get_user_context(request: Request) -> data_structures.UserDetails:
 
 
 UserContext = Annotated[data_structures.UserDetails, Depends(get_user_context)]
-
-
-# Lambda function handlers (for scheduled tasks)
-# These will be invoked directly by Lambda, not through API Gateway
-def lambda_query_and_send_reminders_handler(event, context):
-    """Lambda function to query and send reminders."""
-    return query_and_send_reminders(event, context)
-
-
-def lambda_delete_expired_reminders_handler(event, context):
-    """Lambda function to delete expired reminders."""
-    return delete_expired_reminders(event, context)
 
 
 # API Routes

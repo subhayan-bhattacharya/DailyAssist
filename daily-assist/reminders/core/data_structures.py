@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from typing import Optional, Sequence
 from zoneinfo import ZoneInfo
 
+
 from core.datetime_utils import DEFAULT_DATE_FORMATS, DateTimeUTC, parse_datetime
 from core.reminder_frequency import (
     ReminderFrequency,
@@ -106,6 +107,8 @@ class ReminderDetailsFromRequest(ReminderBase):
                     raise ValueError(
                         "Expiration date required when should_expire is True"
                     )
+                if self.reminder_expiration_date_time <= datetime.datetime.now(datetime.UTC):
+                    raise ValueError("Expiration date must be in the future")
 
                 if self.next_reminder_date_time is None:
                     logger.debug("Calculating next reminder date for expiring reminder")

@@ -74,10 +74,6 @@ def parse_datetime(
     # Convert to UTC
     dt_utc = dt.astimezone(datetime.UTC)
 
-    # Validate not in past
-    if dt_utc < datetime.datetime.now(datetime.UTC):
-        raise ValueError("Datetime must be in the future")
-
     return dt_utc
 
 
