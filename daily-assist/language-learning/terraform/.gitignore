@@ -1,0 +1,13 @@
+# Terraform local state
+*.tfstate
+*.tfstate.*
+
+# .tfvars files (sensitive)
+*.tfvars
+*.tfvars.json
+
+# Terraform directory
+.terraform/
+
+# Terraform plan files
+tfplan
