@@ -19,3 +19,8 @@ output "connection_uri" {
   value     = neon_project.language_learning.connection_uri
   sensitive = true
 }
+
+output "app_connection_uri" {
+  value     = "postgres://${neon_role.app_owner.name}:${neon_role.app_owner.password}@${neon_project.language_learning.database_host}/${neon_database.language_learning.name}"
+  sensitive = true
+}
