@@ -1,6 +1,6 @@
-from sqlalchemy import Column, Integer, DateTime, Text, ForeignKey, SmallInteger, func, Boolean
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy import Column, Integer, DateTime, Date, Text, ForeignKey, SmallInteger, func, Boolean
+from sqlalchemy.dialects.postgresql import UUID, ARRAY
+from sqlalchemy.orm import declarative_base
 import uuid
 
 Base = declarative_base()
@@ -46,4 +46,17 @@ class FlashcardView(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     word_id = Column(UUID(as_uuid=True), ForeignKey("words.id", ondelete="CASCADE"), nullable=False)
     viewed_at = Column(DateTime(timezone=True), server_default=func.now())
-    confidence = Column(SmallInteger) # 1-5
+    confidence = Column(SmallInteger)  # 1-5
+
+class DailySelection(Base):
+    __tablename__ = "daily_selections"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    selected_on = Column(Date, nullable=False, unique=True)
+    word_ids = Column(ARRAY(UUID(as_uuid=True)), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class AppSetting(Base):
+    __tablename__ = "app_settings"
+    key = Column(Text, primary_key=True)
+    value = Column(Text, nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
