@@ -6,7 +6,7 @@ Usage:
     export DATABASE_URL=...
     uv run python scripts/seed_prompt.py
 """
-import os, sys
+import os, sys, uuid
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -52,8 +52,8 @@ def main():
             print(f"Updated existing default prompt: {row.id}")
         else:
             result = conn.execute(
-                text("INSERT INTO prompts (name, template, is_default) VALUES (:n, :t, TRUE) RETURNING id"),
-                {"n": PROMPT_NAME, "t": PROMPT_TEMPLATE},
+                text("INSERT INTO prompts (id, name, template, is_default) VALUES (:id, :n, :t, TRUE) RETURNING id"),
+                {"id": uuid.uuid4(), "n": PROMPT_NAME, "t": PROMPT_TEMPLATE},
             )
             print(f"Inserted new default prompt: {result.fetchone().id}")
         conn.commit()

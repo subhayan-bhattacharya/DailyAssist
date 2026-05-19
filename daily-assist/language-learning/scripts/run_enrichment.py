@@ -88,8 +88,8 @@ def run_enrichment():
             with engine.connect() as conn:
                 for s in sentences:
                     conn.execute(
-                        text("INSERT INTO example_sentences (word_id, sentence_de, sentence_en, source, prompt_id) VALUES (:wid, :de, :en, 'gpt', :pid)"),
-                        {"wid": word.id, "de": s["sentence_de"], "en": s["sentence_en"], "pid": prompt_row.id},
+                        text("INSERT INTO example_sentences (id, word_id, sentence_de, sentence_en, source, prompt_id) VALUES (:id, :wid, :de, :en, 'gpt', :pid)"),
+                        {"id": uuid.uuid4(), "wid": word.id, "de": s["sentence_de"], "en": s["sentence_en"], "pid": prompt_row.id},
                     )
                 updates = {"id": word.id}
                 meaning_sql = ", meaning = :meaning" if (meaning and not word.meaning) else ""

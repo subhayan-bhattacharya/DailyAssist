@@ -28,7 +28,7 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('key')
     )
     op.create_table('daily_selections',
-    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('id', sa.UUID(), server_default=sa.text('gen_random_uuid()'), nullable=False),
     sa.Column('selected_on', sa.Date(), nullable=False),
     sa.Column('word_ids', postgresql.ARRAY(sa.UUID()), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),

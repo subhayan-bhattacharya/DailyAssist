@@ -6,7 +6,7 @@ Usage:
     export DATABASE_URL=...
     uv run python scripts/seed_words.py
 """
-import os, sys
+import os, sys, uuid
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -40,11 +40,11 @@ def main():
         for w in WORDS:
             result = conn.execute(
                 text("""
-                    INSERT INTO words (german_word, meaning, notes, enrichment_status)
-                    VALUES (:german_word, :meaning, :notes, 'pending')
+                    INSERT INTO words (id, german_word, meaning, notes, enrichment_status, enrichment_attempts)
+                    VALUES (:id, :german_word, :meaning, :notes, 'pending', 0)
                     ON CONFLICT (german_word) DO NOTHING
                 """),
-                w,
+                {"id": uuid.uuid4(), **w},
             )
             if result.rowcount:
                 print(f"  Inserted: {w['german_word']}")
