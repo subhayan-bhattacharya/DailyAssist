@@ -148,7 +148,55 @@ Updates one or more application settings. Note that changes to `daily_word_count
 
 ---
 
-## 5. System
+## 5. Prompts
+
+Endpoints for managing the enrichment prompt used by the nightly AI job.
+
+### `GET /prompts/default`
+Fetches the current default prompt used for future enrichment jobs.
+
+*   **Response:** `200 OK`
+*   **Body Structure:**
+    ```json
+    {
+      "id": "123e4567-e89b-12d3-a456-426614174000",
+      "name": "b2_tutor_prompt_v2",
+      "template": "Prompt text with {{word}} placeholder",
+      "is_default": true,
+      "created_at": "2024-05-20T14:35:00.000000Z"
+    }
+    ```
+*   **Error Responses:**
+    *   `404 Not Found`: If no default prompt is configured.
+
+### `POST /prompts/default`
+Creates a new prompt version and makes it the default for future enrichment jobs. Existing prompts are not changed, so historical `enrichment_jobs` and `example_sentences` continue pointing at the prompt that generated them.
+
+*   **Request Body:**
+    ```json
+    {
+      "name": "b2_tutor_prompt_v2",
+      "template": "Prompt text with {{word}} placeholder"
+    }
+    ```
+*   **Response:** `201 Created`
+*   **Body Structure:**
+    ```json
+    {
+      "id": "987fcdeb-51a2-43d7-9012-345678901234",
+      "name": "b2_tutor_prompt_v2",
+      "template": "Prompt text with {{word}} placeholder",
+      "is_default": true,
+      "created_at": "2024-05-20T14:35:00.000000Z"
+    }
+    ```
+*   **Error Responses:**
+    *   `422 Unprocessable Entity`: If the prompt template does not include the `{{word}}` placeholder.
+    *   `409 Conflict`: If the default prompt could not be changed.
+
+---
+
+## 6. System
 
 ### `GET /health`
 A simple health check endpoint to verify the API is running.

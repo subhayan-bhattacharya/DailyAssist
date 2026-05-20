@@ -1,5 +1,5 @@
 """
-Inserts (or updates) the default B2 German tutor prompt in the prompts table.
+Inserts a new default B2 German tutor prompt version in the prompts table.
 Run before seed_words.py and run_enrichment.py.
 
 Usage:
@@ -43,19 +43,18 @@ def main():
     engine = create_engine(db_url)
 
     with engine.connect() as conn:
-        row = conn.execute(text("SELECT id FROM prompts WHERE is_default = TRUE LIMIT 1")).fetchone()
-        if row:
-            conn.execute(
-                text("UPDATE prompts SET template = :t WHERE id = :id"),
-                {"t": PROMPT_TEMPLATE, "id": row.id},
-            )
-            print(f"Updated existing default prompt: {row.id}")
+        row = conn.execute(text("SELECT id, template FROM prompts WHERE is_default = TRUE LIMIT 1")).fetchone()
+        if row and row.template == PROMPT_TEMPLATE:
+            print(f"Default prompt already matches seed prompt: {row.id}")
         else:
+            conn.execute(
+                text("UPDATE prompts SET is_default = FALSE WHERE is_default = TRUE"),
+            )
             result = conn.execute(
                 text("INSERT INTO prompts (id, name, template, is_default) VALUES (:id, :n, :t, TRUE) RETURNING id"),
                 {"id": uuid.uuid4(), "n": PROMPT_NAME, "t": PROMPT_TEMPLATE},
             )
-            print(f"Inserted new default prompt: {result.fetchone().id}")
+            print(f"Inserted new default prompt version: {result.fetchone().id}")
         conn.commit()
 
 

@@ -21,6 +21,10 @@ CREATE TABLE prompts (
     created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE UNIQUE INDEX uq_prompts_single_default
+ON prompts (is_default)
+WHERE is_default = TRUE;
+
 CREATE TABLE enrichment_jobs (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     word_id       UUID NOT NULL REFERENCES words(id) ON DELETE CASCADE,

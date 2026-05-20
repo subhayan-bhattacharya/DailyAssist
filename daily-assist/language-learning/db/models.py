@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, DateTime, Date, Text, ForeignKey, SmallInteger, func, Boolean, text
+from sqlalchemy import Column, Integer, DateTime, Date, Text, ForeignKey, SmallInteger, func, Boolean, text, Index
 from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.orm import declarative_base
 import uuid
@@ -18,6 +18,15 @@ class Word(Base):
 
 class Prompt(Base):
     __tablename__ = "prompts"
+    __table_args__ = (
+        Index(
+            "uq_prompts_single_default",
+            "is_default",
+            unique=True,
+            postgresql_where=text("is_default = TRUE"),
+        ),
+    )
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, server_default=text("gen_random_uuid()"))
     name, template = Column(Text, nullable=False), Column(Text, nullable=False)
     is_default = Column(Boolean, default=False)

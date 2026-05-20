@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional
 from uuid import UUID
 from datetime import date, datetime
@@ -59,6 +59,29 @@ class ExampleResponse(BaseModel):
     word_id: UUID
     german_word: str
     sentences: List[ExampleSentence]
+
+
+# --- Prompt Schemas ---
+
+class PromptCreate(BaseModel):
+    name: str
+    template: str
+
+    @field_validator("template")
+    @classmethod
+    def template_must_include_word_placeholder(cls, value: str) -> str:
+        if "{{word}}" not in value:
+            raise ValueError("template must include the {{word}} placeholder")
+        return value
+
+
+class PromptInDB(PromptCreate):
+    id: UUID
+    is_default: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
 
 
 # --- Settings Schemas ---
