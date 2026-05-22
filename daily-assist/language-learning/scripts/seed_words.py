@@ -12,18 +12,29 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from sqlalchemy import create_engine, text
 
-WORDS = [
-    {"german_word": "der Hinterhalt",               "meaning": "ambush",                   "notes": "noun"},
-    {"german_word": "Bist du ausgeruht?",            "meaning": "Are you well rested?",     "notes": "common phrase"},
-    {"german_word": "sich ausruhen",                 "meaning": "to rest",                  "notes": "reflexive verb"},
-    {"german_word": "hinterhältig",                  "meaning": "malicious",                "notes": "adjective, e.g. hinterhältige Fragen"},
-    {"german_word": "schmeicheln",                   "meaning": "to flatter",               "notes": "verb, takes dative"},
-    {"german_word": "Ich fühle mich geschmeichelt",  "meaning": "I feel flattered",         "notes": "common expression"},
-    {"german_word": "Ich muss ihm schmeicheln",      "meaning": "I must flatter him",       "notes": "dative usage example"},
-    {"german_word": "außergewöhnlich",               "meaning": "exceptional/extraordinary","notes": "adjective"},
-    {"german_word": "die Plauderei",                 "meaning": "the chat",                 "notes": "noun"},
-    {"german_word": "das Geplauder",                 "meaning": "small talk",               "notes": "noun"},
-]
+DEFAULT_FILE_PATH = os.path.expanduser("~/Downloads/Deutsch tough Words.txt")
+
+def load_words_from_file(file_path):
+    """
+    Parses a file and extracts ONLY the German word/phrase
+    (the part before the first colon on each relevant line).
+    """
+    words = []
+    if not os.path.exists(file_path):
+        print(f"ERROR: File not found at {file_path}")
+        return []
+
+    print(f"Reading words from: {file_path}")
+    with open(file_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if ":" in line:
+                # Extract only the German word (before the colon)
+                word = line.split(":", 1)[0].strip()
+                if word and word.lower() != "new list":
+                    words.append(word)
+    
+    return words
 
 
 def main():
@@ -31,26 +42,32 @@ def main():
     if not db_url:
         print("ERROR: DATABASE_URL is not set.")
         sys.exit(1)
+    
+    words_to_seed = load_words_from_file(DEFAULT_FILE_PATH)
+    if not words_to_seed:
+        print("No words found to seed.")
+        sys.exit(0)
+
     db_url = db_url.replace("postgres://", "postgresql://", 1)
     engine = create_engine(db_url)
 
     inserted = 0
     skipped = 0
     with engine.connect() as conn:
-        for w in WORDS:
+        for word in words_to_seed:
             result = conn.execute(
                 text("""
-                    INSERT INTO words (id, german_word, meaning, notes, enrichment_status, enrichment_attempts)
-                    VALUES (:id, :german_word, :meaning, :notes, 'pending', 0)
+                    INSERT INTO words (id, german_word, enrichment_status, enrichment_attempts)
+                    VALUES (:id, :german_word, 'pending', 0)
                     ON CONFLICT (german_word) DO NOTHING
                 """),
-                {"id": uuid.uuid4(), **w},
+                {"id": uuid.uuid4(), "german_word": word},
             )
             if result.rowcount:
-                print(f"  Inserted: {w['german_word']}")
+                print(f"  Inserted: {word}")
                 inserted += 1
             else:
-                print(f"  Skipped (exists): {w['german_word']}")
+                print(f"  Skipped (exists): {word}")
                 skipped += 1
         conn.commit()
 
