@@ -55,6 +55,35 @@ Records that a user has reviewed a flashcard and logs their confidence score.
 
 Endpoints for managing the vocabulary.
 
+### `GET /words/search?q={query}&limit={limit}`
+Searches the existing vocabulary by German word substring. The query can be a full word/phrase or any part of it.
+
+*   **Query Parameters:**
+    *   `q`: Required string. Full or partial German word/phrase.
+    *   `limit`: Optional integer between 1 and 100. Defaults to 20.
+*   **Response:** `200 OK`
+*   **Body Structure:**
+    ```json
+    {
+      "query": "gesell",
+      "count": 1,
+      "words": [
+        {
+          "german_word": "die Geselligkeit",
+          "meaning": "sociability",
+          "notes": "noun",
+          "id": "987fcdeb-51a2-43d7-9012-345678901234",
+          "enrichment_status": "completed",
+          "created_at": "2024-05-20T14:35:00.000000Z",
+          "example_count": 10,
+          "has_examples": true
+        }
+      ]
+    }
+    ```
+*   **Notes:**
+    *   Use `GET /words/{word_id}/examples` to fetch the actual examples when `has_examples` is true.
+
 ### `POST /words/`
 Adds a new word to the database. The word will initially have an `enrichment_status` of `pending` until the nightly background job fetches examples for it.
 

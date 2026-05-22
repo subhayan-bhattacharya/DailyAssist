@@ -21,6 +21,17 @@ class WordInDB(WordBase):
     class Config:
         from_attributes = True
 
+
+class WordSearchResult(WordInDB):
+    example_count: int
+    has_examples: bool
+
+
+class WordSearchResponse(BaseModel):
+    query: str
+    count: int
+    words: List[WordSearchResult]
+
 # --- Flashcard Schemas ---
 
 class FlashcardWord(BaseModel):
