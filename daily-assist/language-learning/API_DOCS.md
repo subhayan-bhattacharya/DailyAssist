@@ -110,6 +110,25 @@ Adds a new word to the database. The word will initially have an `enrichment_sta
 *   **Error Responses:**
     *   `409 Conflict`: If the word already exists in the database.
 
+### `DELETE /words/{word_id}`
+Deletes a word from the vocabulary.
+
+Related rows in `enrichment_jobs`, `example_sentences`, and `flashcard_views` are removed by database cascade rules. The word ID is also removed from any cached `daily_selections` entries.
+
+*   **Path Parameter:**
+    *   `word_id`: The UUID of the word.
+*   **Response:** `200 OK`
+*   **Body Structure:**
+    ```json
+    {
+      "id": "987fcdeb-51a2-43d7-9012-345678901234",
+      "german_word": "die Geselligkeit",
+      "message": "Word successfully deleted"
+    }
+    ```
+*   **Error Responses:**
+    *   `404 Not Found`: If the word does not exist.
+
 ---
 
 ## 3. Examples

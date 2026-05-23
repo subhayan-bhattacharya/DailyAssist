@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { fetchFlashcards, recordFlashcardView } from '../api/client';
+import { deleteWord, fetchFlashcards, recordFlashcardView } from '../api/client';
 import type { FlashcardWord } from '../api/types';
 import { ExamplesPanel } from './ExamplesPanel';
 
@@ -43,6 +43,7 @@ export function FlashcardReview() {
   const [scores, setScores] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [completed, setCompleted] = useState(false);
 
@@ -91,6 +92,43 @@ export function FlashcardReview() {
       setError(err instanceof Error ? err.message : 'Could not save confidence.');
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function deleteCurrentWord() {
+    if (!wordId || !currentWord) return;
+
+    const confirmed = window.confirm(`Delete "${currentWord.german_word}" from your vocabulary?`);
+    if (!confirmed) return;
+
+    try {
+      setDeleting(true);
+      setError(null);
+      await deleteWord(wordId);
+
+      const data = await fetchFlashcards();
+      const nextIndex = data.words.length === 0 ? 0 : Math.min(currentIndex, data.words.length - 1);
+      const nextWordIds = new Set(data.words.map((word) => getWordId(word)));
+
+      setDate(data.date);
+      setWords(data.words);
+      setCurrentIndex(nextIndex);
+      setRevealed(false);
+      setExamplesOpen(false);
+      setCompleted(false);
+      setScores((existingScores) => {
+        const updatedScores: Record<string, number> = {};
+        for (const [scoreWordId, score] of Object.entries(existingScores)) {
+          if (scoreWordId !== wordId && nextWordIds.has(scoreWordId)) {
+            updatedScores[scoreWordId] = score;
+          }
+        }
+        return updatedScores;
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not delete the word.');
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -197,6 +235,9 @@ export function FlashcardReview() {
             </button>
             <button type="button" className="add-btn reveal-btn" onClick={() => setRevealed((value) => !value)}>
               {revealed ? 'Hide Meaning' : 'Flip Card'}
+            </button>
+            <button type="button" className="danger-btn" onClick={deleteCurrentWord} disabled={deleting || submitting}>
+              {deleting ? 'Deleting...' : 'Delete Word'}
             </button>
             <button type="button" className="nav-btn primary-next" onClick={goNext}>
               {currentIndex >= words.length - 1 ? 'Finish' : 'Next'}

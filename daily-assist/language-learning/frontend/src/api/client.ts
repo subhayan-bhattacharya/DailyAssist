@@ -5,6 +5,7 @@ import type {
   FlashcardsResponse,
   Prompt,
   PromptCreateRequest,
+  WordDeleteResponse,
   WordCreateRequest,
   WordResponse,
   WordSearchResponse,
@@ -130,6 +131,21 @@ export function searchWords(query: string, limit = 20): Promise<WordSearchRespon
   });
 
   return request<WordSearchResponse>(`/words/search?${params.toString()}`);
+}
+
+export function deleteWord(wordId: string): Promise<WordDeleteResponse> {
+  if (useMockApi) {
+    const word = mockWords.words.find((item) => item.id === wordId);
+    return Promise.resolve({
+      id: wordId,
+      german_word: word?.german_word ?? 'Deleted word',
+      message: 'Word successfully deleted',
+    });
+  }
+
+  return request<WordDeleteResponse>(`/words/${wordId}`, {
+    method: 'DELETE',
+  });
 }
 
 export function fetchExamples(wordId: string): Promise<ExamplesResponse> {

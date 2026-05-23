@@ -32,6 +32,12 @@ class WordSearchResponse(BaseModel):
     count: int
     words: List[WordSearchResult]
 
+
+class WordDeleteResponse(BaseModel):
+    id: UUID
+    german_word: str
+    message: str
+
 # --- Flashcard Schemas ---
 
 class FlashcardWord(BaseModel):

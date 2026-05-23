@@ -37,6 +37,12 @@ export interface WordSearchResponse {
   words: WordSearchResult[];
 }
 
+export interface WordDeleteResponse {
+  id: string;
+  german_word: string;
+  message: string;
+}
+
 export interface ExampleSentence {
   sentence_de: string;
   sentence_en: string;
