@@ -1,0 +1,15 @@
+FROM public.ecr.aws/lambda/python:3.14
+
+COPY pyproject.toml uv.lock ${LAMBDA_TASK_ROOT}/
+
+RUN pip install --no-cache-dir uv && \
+    cd ${LAMBDA_TASK_ROOT} && \
+    uv export --no-dev --frozen --no-hashes > requirements.txt && \
+    uv pip install --system --no-cache -r requirements.txt && \
+    rm requirements.txt
+
+COPY api ${LAMBDA_TASK_ROOT}/api
+COPY core ${LAMBDA_TASK_ROOT}/core
+COPY db ${LAMBDA_TASK_ROOT}/db
+
+CMD ["api.app.handler"]
