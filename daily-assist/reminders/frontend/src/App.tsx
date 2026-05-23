@@ -1,15 +1,23 @@
 import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Authenticator, useAuthenticator } from '@aws-amplify/ui-react';
 import { RemindersList } from './components/RemindersList';
+import { AppSelector } from './components/AppSelector';
+import { LanguageLearningApp } from './flashcards/components/LanguageLearningApp';
 import './App.css';
 
-function AppContent() {
+const APP_TITLES: Record<string, string> = {
+  '/reminders': 'Daily Assist — Reminders',
+  '/flashcards': 'Daily Assist — German Flashcards',
+};
+
+function AppShell() {
   const { route, signOut, user, skipVerification } = useAuthenticator();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    if (route === 'verifyUser') {
-      skipVerification();
-    }
+    if (route === 'verifyUser') skipVerification();
   }, [route, skipVerification]);
 
   if (route !== 'authenticated') {
@@ -23,25 +31,40 @@ function AppContent() {
     );
   }
 
+  const title = APP_TITLES[location.pathname];
+
   return (
     <main className="app-container">
       <header className="app-header">
-        <h1>Daily Assist - Reminders</h1>
+        <div className="header-left">
+          {title && (
+            <button className="back-btn" onClick={() => navigate('/')}>← Home</button>
+          )}
+          <h1>{title ?? 'Daily Assist'}</h1>
+        </div>
         <div className="user-info">
           <span>Welcome, {user?.signInDetails?.loginId}</span>
           <button onClick={signOut} className="sign-out-btn">Sign Out</button>
         </div>
       </header>
-      <RemindersList />
+
+      <Routes>
+        <Route path="/" element={<AppSelector />} />
+        <Route path="/reminders" element={<RemindersList />} />
+        <Route path="/flashcards" element={<LanguageLearningApp />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </main>
   );
 }
 
 function App() {
   return (
-    <Authenticator.Provider>
-      <AppContent />
-    </Authenticator.Provider>
+    <BrowserRouter>
+      <Authenticator.Provider>
+        <AppShell />
+      </Authenticator.Provider>
+    </BrowserRouter>
   );
 }
 

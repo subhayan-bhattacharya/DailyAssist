@@ -21,3 +21,8 @@ variable "s3_bucket_name" {
   type        = string
   default     = "poulomi-subhayan.click"
 }
+
+variable "language_api_url" {
+  description = "Base URL of the language learning API Gateway (output of language-learning/terraform/api)"
+  type        = string
+}

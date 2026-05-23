@@ -236,6 +236,9 @@ resource "null_resource" "frontend_deploy" {
   provisioner "local-exec" {
     command     = "npm ci && npm run build"
     working_dir = "${path.module}/../../frontend"
+    environment = {
+      VITE_LANGUAGE_API_URL = var.language_api_url
+    }
   }
 
   provisioner "local-exec" {
