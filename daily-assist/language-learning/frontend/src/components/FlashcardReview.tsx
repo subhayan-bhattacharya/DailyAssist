@@ -247,7 +247,7 @@ export function FlashcardReview() {
           <div className="confidence-dock">
             <div>
               <h3>How did this feel?</h3>
-              <p>{revealed ? 'Score the card when you have checked the answer.' : 'Flip the card before scoring.'}</p>
+              <p>Score the card after reviewing the word.</p>
             </div>
             <div className="confidence-buttons">
               {confidenceOptions.map((option) => (
@@ -255,7 +255,7 @@ export function FlashcardReview() {
                   key={option.value}
                   type="button"
                   className={`confidence-btn ${currentScore === option.value ? 'selected' : ''}`}
-                  disabled={!revealed || submitting}
+                  disabled={submitting}
                   onClick={() => submitConfidence(option.value)}
                 >
                   <span>{option.value}</span>{option.label}
@@ -265,7 +265,7 @@ export function FlashcardReview() {
           </div>
 
           <div className="examples-drawer">
-            <button type="button" className="secondary-btn" onClick={() => setExamplesOpen((value) => !value)} disabled={!revealed}>
+            <button type="button" className="secondary-btn" onClick={() => setExamplesOpen((value) => !value)}>
               {examplesOpen ? 'Hide Examples' : 'Show Examples'}
             </button>
             {examplesOpen && <ExamplesPanel wordId={wordId} />}

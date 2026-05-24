@@ -131,6 +131,25 @@ resource "aws_acm_certificate_validation" "frontend" {
   validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
 }
 
+# ---------- CloudFront Function: SPA entry-point rewrite for /flashcards ----------
+
+resource "aws_cloudfront_function" "flashcards_router" {
+  provider = aws.us_east_1
+  name     = "flashcards-spa-router"
+  runtime  = "cloudfront-js-2.0"
+  publish  = true
+  code     = <<-EOF
+    function handler(event) {
+      var request = event.request;
+      var uri = request.uri;
+      if (uri === '/flashcards' || uri === '/flashcards/') {
+        request.uri = '/flashcards/index.html';
+      }
+      return request;
+    }
+  EOF
+}
+
 # ---------- CloudFront Distribution ----------
 
 resource "aws_cloudfront_distribution" "frontend" {
@@ -149,6 +168,27 @@ resource "aws_cloudfront_distribution" "frontend" {
     cached_methods         = ["GET", "HEAD"]
     target_origin_id       = "s3-${aws_s3_bucket.frontend.id}"
     viewer_protocol_policy = "redirect-to-https"
+
+    forwarded_values {
+      query_string = false
+      cookies {
+        forward = "none"
+      }
+    }
+  }
+
+  # Language learning SPA served from the /flashcards/ S3 prefix
+  ordered_cache_behavior {
+    path_pattern           = "/flashcards*"
+    allowed_methods        = ["GET", "HEAD"]
+    cached_methods         = ["GET", "HEAD"]
+    target_origin_id       = "s3-${aws_s3_bucket.frontend.id}"
+    viewer_protocol_policy = "redirect-to-https"
+
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.flashcards_router.arn
+    }
 
     forwarded_values {
       query_string = false
@@ -233,18 +273,33 @@ resource "null_resource" "frontend_deploy" {
     always_run = timestamp()
   }
 
+  # Build and sync the reminders SPA (root of the bucket)
   provisioner "local-exec" {
     command     = "npm ci && npm run build"
     working_dir = "${path.module}/../../frontend"
+  }
+
+  provisioner "local-exec" {
+    command = "aws s3 sync ${path.module}/../../frontend/dist/ s3://${aws_s3_bucket.frontend.id}/ --delete --exclude 'flashcards/*'"
+  }
+
+  # Build and sync the language learning SPA (under /flashcards/ prefix)
+  provisioner "local-exec" {
+    command     = "npm ci && npm run build"
+    working_dir = "${path.module}/../../../language-learning/frontend"
     environment = {
-      VITE_LANGUAGE_API_URL = var.language_api_url
+      VITE_BASE_PATH            = "/flashcards/"
+      VITE_COGNITO_USER_POOL_ID = var.cognito_user_pool_id
+      VITE_COGNITO_CLIENT_ID    = aws_cognito_user_pool_client.frontend.id
+      VITE_API_URL              = var.language_api_url
     }
   }
 
   provisioner "local-exec" {
-    command = "aws s3 sync ${path.module}/../../frontend/dist/ s3://${aws_s3_bucket.frontend.id} --delete"
+    command = "aws s3 sync ${path.module}/../../../language-learning/frontend/dist/ s3://${aws_s3_bucket.frontend.id}/flashcards/ --delete"
   }
 
+  # Invalidate the entire CloudFront cache
   provisioner "local-exec" {
     command = "aws cloudfront create-invalidation --distribution-id ${aws_cloudfront_distribution.frontend.id} --paths '/*'"
   }
@@ -253,6 +308,7 @@ resource "null_resource" "frontend_deploy" {
     aws_s3_bucket.frontend,
     aws_cloudfront_distribution.frontend,
     aws_s3_bucket_policy.frontend,
-    aws_route53_record.frontend
+    aws_route53_record.frontend,
+    aws_cloudfront_function.flashcards_router,
   ]
 }

@@ -3,12 +3,10 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from
 import { Authenticator, useAuthenticator } from '@aws-amplify/ui-react';
 import { RemindersList } from './components/RemindersList';
 import { AppSelector } from './components/AppSelector';
-import { LanguageLearningApp } from './flashcards/components/LanguageLearningApp';
 import './App.css';
 
 const APP_TITLES: Record<string, string> = {
   '/reminders': 'Daily Assist — Reminders',
-  '/flashcards': 'Daily Assist — German Flashcards',
 };
 
 function AppShell() {
@@ -51,7 +49,6 @@ function AppShell() {
       <Routes>
         <Route path="/" element={<AppSelector />} />
         <Route path="/reminders" element={<RemindersList />} />
-        <Route path="/flashcards" element={<LanguageLearningApp />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </main>

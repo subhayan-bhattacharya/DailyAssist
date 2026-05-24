@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { Authenticator, useAuthenticator } from '@aws-amplify/ui-react';
-import { getApiBaseUrl } from './api/client';
 import { LanguageLearningApp } from './components/LanguageLearningApp';
 import { authEnabled } from './utils/auth';
 import './App.css';
@@ -29,9 +28,9 @@ function AppContent() {
   return (
     <main className="app-container">
       <header className="app-header">
-        <div>
-          <h1>Daily Assist - German Flashcards</h1>
-          <p>{getApiBaseUrl()}</p>
+        <div className="header-left">
+          <button type="button" className="back-btn" onClick={() => { window.location.href = '/'; }}>← Home</button>
+          <h1>Daily Assist — German Flashcards</h1>
         </div>
         <div className="user-info">
           <span>{authEnabled ? `Welcome, ${user?.signInDetails?.loginId}` : 'Local dev mode'}</span>

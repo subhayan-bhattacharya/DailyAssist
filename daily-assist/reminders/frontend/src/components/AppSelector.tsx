@@ -13,7 +13,7 @@ export function AppSelector() {
           <h3>Reminders</h3>
           <p>View and manage your personal reminders</p>
         </button>
-        <button className="app-card" onClick={() => navigate('/flashcards')}>
+        <button className="app-card" onClick={() => { window.location.href = '/flashcards/'; }}>
           <span className="app-card-icon">🇩🇪</span>
           <h3>German Flashcards</h3>
           <p>Practice vocabulary with daily flashcard sessions</p>
