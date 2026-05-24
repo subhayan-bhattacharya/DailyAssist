@@ -134,7 +134,6 @@ resource "aws_acm_certificate_validation" "frontend" {
 # ---------- CloudFront Function: SPA entry-point rewrite for /flashcards ----------
 
 resource "aws_cloudfront_function" "flashcards_router" {
-  provider = aws.us_east_1
   name     = "flashcards-spa-router"
   runtime  = "cloudfront-js-2.0"
   publish  = true

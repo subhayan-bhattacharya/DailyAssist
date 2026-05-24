@@ -190,88 +190,92 @@ export function FlashcardReview() {
         <span style={{ width: `${progressPercent}%` }} />
       </div>
 
-      <div className="study-layout">
-        <aside className="card-strip" aria-label="Flashcard list">
-          {words.map((word, index) => {
-            const stripWordId = getWordId(word);
-            return (
-              <button
-                key={stripWordId || word.german_word}
-                type="button"
-                className={`strip-dot ${index === currentIndex ? 'active' : ''} ${scores[stripWordId] ? 'scored' : ''}`}
-                onClick={() => goToCard(index)}
-                aria-label={`Go to card ${index + 1}`}
-              >
-                {index + 1}
-              </button>
-            );
-          })}
-        </aside>
+      <aside className="card-strip" aria-label="Flashcard list">
+        {words.map((word, index) => {
+          const stripWordId = getWordId(word);
+          return (
+            <button
+              key={stripWordId || word.german_word}
+              type="button"
+              className={`strip-dot ${index === currentIndex ? 'active' : ''} ${scores[stripWordId] ? 'scored' : ''}`}
+              onClick={() => goToCard(index)}
+              aria-label={`Go to card ${index + 1}`}
+            />
+          );
+        })}
+      </aside>
 
-        <div className="study-main">
-          <button
-            type="button"
-            className={`flashcard-stage ${revealed ? 'is-revealed' : ''}`}
-            onClick={() => setRevealed((value) => !value)}
-            aria-label={revealed ? 'Hide meaning' : 'Reveal meaning'}
-          >
-            <span className="card-corner">{revealed ? 'Meaning' : 'German'}</span>
-            <span className="card-count">{currentIndex + 1}/{words.length}</span>
-            <span className="flashcard-front">
-              <span className="word-label">Word or phrase</span>
-              <strong className={wordSizeClass}>{currentWord.german_word}</strong>
-              {currentWord.notes && <span className="card-note">{currentWord.notes}</span>}
-            </span>
-            <span className="flashcard-back">
-              <span className="word-label">Meaning</span>
-              <strong className={meaningSizeClass}>{currentWord.meaning || 'No meaning has been added yet.'}</strong>
-              <span className="card-note">Click the card to hide this side.</span>
-            </span>
+      <div className="study-main">
+        <button
+          type="button"
+          className={`flashcard-stage ${revealed ? 'is-revealed' : ''}`}
+          onClick={() => setRevealed((value) => !value)}
+          aria-label={revealed ? 'Hide meaning' : 'Reveal meaning'}
+        >
+          <span className="card-corner">{revealed ? 'Meaning' : 'German'}</span>
+          <span className="card-count">{currentIndex + 1}/{words.length}</span>
+          <span className="flashcard-front">
+            <span className="word-label">Word or phrase</span>
+            <strong className={wordSizeClass}>{currentWord.german_word}</strong>
+            {currentWord.notes && <span className="card-note">{currentWord.notes}</span>}
+          </span>
+          <span className="flashcard-back">
+            <span className="word-label">Meaning</span>
+            <strong className={meaningSizeClass}>{currentWord.meaning || 'No meaning has been added yet.'}</strong>
+            <span className="card-note">Click the card to hide this side.</span>
+          </span>
+        </button>
+
+        <div className="study-actions">
+          <button type="button" className="nav-btn nav-arrow" onClick={() => goToCard(currentIndex - 1)} disabled={currentIndex === 0} aria-label="Previous card">
+            ←
           </button>
+          <button type="button" className="add-btn reveal-btn" onClick={() => setRevealed((value) => !value)}>
+            {revealed ? 'Hide Meaning' : 'Flip Card'}
+          </button>
+          <button type="button" className="secondary-btn" onClick={() => setExamplesOpen(true)}>
+            Examples
+          </button>
+          <button type="button" className="danger-btn" onClick={deleteCurrentWord} disabled={deleting || submitting}>
+            {deleting ? 'Deleting...' : 'Delete'}
+          </button>
+          <button type="button" className="nav-btn primary-next nav-arrow" onClick={goNext} aria-label={currentIndex >= words.length - 1 ? 'Finish' : 'Next card'}>
+            {currentIndex >= words.length - 1 ? '✓' : '→'}
+          </button>
+        </div>
 
-          <div className="study-actions">
-            <button type="button" className="nav-btn" onClick={() => goToCard(currentIndex - 1)} disabled={currentIndex === 0}>
-              Previous
-            </button>
-            <button type="button" className="add-btn reveal-btn" onClick={() => setRevealed((value) => !value)}>
-              {revealed ? 'Hide Meaning' : 'Flip Card'}
-            </button>
-            <button type="button" className="danger-btn" onClick={deleteCurrentWord} disabled={deleting || submitting}>
-              {deleting ? 'Deleting...' : 'Delete Word'}
-            </button>
-            <button type="button" className="nav-btn primary-next" onClick={goNext}>
-              {currentIndex >= words.length - 1 ? 'Finish' : 'Next'}
-            </button>
+        <div className="confidence-dock">
+          <div>
+            <h3>How did this feel?</h3>
+            <p>Score the card after reviewing the word.</p>
           </div>
-
-          <div className="confidence-dock">
-            <div>
-              <h3>How did this feel?</h3>
-              <p>Score the card after reviewing the word.</p>
-            </div>
-            <div className="confidence-buttons">
-              {confidenceOptions.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={`confidence-btn ${currentScore === option.value ? 'selected' : ''}`}
-                  disabled={submitting}
-                  onClick={() => submitConfidence(option.value)}
-                >
-                  <span>{option.value}</span>{option.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="examples-drawer">
-            <button type="button" className="secondary-btn" onClick={() => setExamplesOpen((value) => !value)}>
-              {examplesOpen ? 'Hide Examples' : 'Show Examples'}
-            </button>
-            {examplesOpen && <ExamplesPanel wordId={wordId} />}
+          <div className="confidence-buttons">
+            {confidenceOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                className={`confidence-btn ${currentScore === option.value ? 'selected' : ''}`}
+                disabled={submitting}
+                onClick={() => submitConfidence(option.value)}
+              >
+                <span>{option.value}</span>{option.label}
+              </button>
+            ))}
           </div>
         </div>
       </div>
+
+      {examplesOpen && (
+        <div className="examples-modal-backdrop" onClick={() => setExamplesOpen(false)}>
+          <div className="examples-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="examples-modal-header">
+              <h3>Examples — {currentWord.german_word}</h3>
+              <button type="button" className="examples-modal-close" onClick={() => setExamplesOpen(false)}>✕</button>
+            </div>
+            <ExamplesPanel wordId={wordId} />
+          </div>
+        </div>
+      )}
 
       {error && <p className="form-error">{error}</p>}
     </section>
