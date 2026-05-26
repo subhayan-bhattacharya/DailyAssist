@@ -8,7 +8,7 @@ terraform {
 
   backend "s3" {
     bucket = "dailyassist-terraform-state-dev"
-    key    = "reminders/frontend/terraform.tfstate"
+    key    = "language-learning/frontend/terraform.tfstate"
     region = "eu-central-1"
   }
 }
@@ -27,9 +27,9 @@ data "aws_cognito_user_pool" "main" {
   user_pool_id = var.cognito_user_pool_id
 }
 
-# Create a public App Client for the Reminders React frontend
+# Create a public App Client for the Language Learning React frontend
 resource "aws_cognito_user_pool_client" "frontend" {
-  name         = "reminders-frontend"
+  name         = "flashcards-frontend"
   user_pool_id = data.aws_cognito_user_pool.main.id
 
   generate_secret = false

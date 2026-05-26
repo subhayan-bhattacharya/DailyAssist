@@ -8,7 +8,7 @@ terraform {
 
   backend "s3" {
     bucket = "dailyassist-terraform-state-dev"
-    key    = "reminders/frontend/terraform.tfstate"
+    key    = "frontend/terraform.tfstate"
     region = "eu-central-1"
   }
 }
@@ -22,53 +22,21 @@ provider "aws" {
   region = "us-east-1"
 }
 
-# Reference the existing Cognito User Pool from shared-infra
+# Reference the existing Cognito User Pool
 data "aws_cognito_user_pool" "main" {
   user_pool_id = var.cognito_user_pool_id
-}
-
-# Create a public App Client for the Reminders React frontend
-resource "aws_cognito_user_pool_client" "frontend" {
-  name         = "reminders-frontend"
-  user_pool_id = data.aws_cognito_user_pool.main.id
-
-  generate_secret = false
-
-  explicit_auth_flows = [
-    "ALLOW_USER_PASSWORD_AUTH",
-    "ALLOW_REFRESH_TOKEN_AUTH",
-    "ALLOW_USER_SRP_AUTH"
-  ]
-
-  access_token_validity  = 1
-  id_token_validity      = 1
-  refresh_token_validity = 30
-
-  token_validity_units {
-    access_token  = "hours"
-    id_token      = "hours"
-    refresh_token = "days"
-  }
-
-  prevent_user_existence_errors = "ENABLED"
-
-  read_attributes  = ["email", "name", "preferred_username"]
-  write_attributes = ["email", "name", "preferred_username"]
-  
-  callback_urls = ["https://${var.domain_name}"]
-  logout_urls   = ["https://${var.domain_name}"]
 }
 
 # ---------- Route 53 Hosted Zone (existing) ----------
 
 data "aws_route53_zone" "main" {
-  zone_id = var.route53_zone_id
+  zone_id = "Z003866034TC2JG6TVG19"
 }
 
 # ---------- S3 Bucket ----------
 
 resource "aws_s3_bucket" "frontend" {
-  bucket = var.domain_name
+  bucket = var.s3_bucket_name
 }
 
 resource "aws_s3_bucket_public_access_block" "frontend" {
@@ -83,7 +51,7 @@ resource "aws_s3_bucket_public_access_block" "frontend" {
 # ---------- CloudFront Origin Access Control ----------
 
 resource "aws_cloudfront_origin_access_control" "frontend" {
-  name                              = "${var.domain_name}-oac"
+  name                              = "${var.s3_bucket_name}-oac"
   origin_access_control_origin_type = "s3"
   signing_behavior                  = "always"
   signing_protocol                  = "sigv4"

@@ -1,5 +1,5 @@
 output "cognito_client_id" {
-  description = "Cognito App Client ID for the Reminders frontend"
+  description = "Cognito App Client ID for the Language Learning frontend"
   value       = aws_cognito_user_pool_client.frontend.id
 }
 

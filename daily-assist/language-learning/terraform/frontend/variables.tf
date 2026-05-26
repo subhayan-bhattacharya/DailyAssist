@@ -17,7 +17,7 @@ variable "route53_zone_id" {
 }
 
 variable "domain_name" {
-  description = "Custom domain name for the Reminders frontend"
+  description = "Custom domain name for the Language Learning frontend"
   type        = string
-  default     = "reminders.poulomi-subhayan.click"
+  default     = "flashcards.poulomi-subhayan.click"
 }
