@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getAuthToken } from '../utils/auth';
 import { AddReminderForm } from './AddReminderForm';
 import { EditReminderForm } from './EditReminderForm';
@@ -46,11 +46,7 @@ export function RemindersList() {
 
   const apiUrl = import.meta.env.VITE_API_URL;
 
-  useEffect(() => {
-    fetchReminders();
-  }, []);
-
-  async function fetchReminders() {
+  const fetchReminders = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -82,7 +78,11 @@ export function RemindersList() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [apiUrl]);
+
+  useEffect(() => {
+    fetchReminders();
+  }, [fetchReminders]);
 
   async function fetchReminderDetail(reminderId: string) {
     try {

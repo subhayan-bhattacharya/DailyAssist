@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import './AppSelector.css';
 
+const flashcardsUrl = import.meta.env.VITE_FLASHCARDS_URL ?? 'https://flashcards.poulomi-subhayan.click/';
+
 export function AppSelector() {
   const navigate = useNavigate();
 
@@ -13,7 +15,7 @@ export function AppSelector() {
           <h3>Reminders</h3>
           <p>View and manage your personal reminders</p>
         </button>
-        <button className="app-card" onClick={() => { window.location.href = '/flashcards/'; }}>
+        <button className="app-card" onClick={() => { window.location.href = flashcardsUrl; }}>
           <span className="app-card-icon">🇩🇪</span>
           <h3>German Flashcards</h3>
           <p>Practice vocabulary with daily flashcard sessions</p>

@@ -2,10 +2,10 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Authenticator, useAuthenticator } from '@aws-amplify/ui-react';
 import { RemindersList } from './components/RemindersList';
-import { AppSelector } from './components/AppSelector';
 import './App.css';
 
 const APP_TITLES: Record<string, string> = {
+  '/': 'Daily Assist — Reminders',
   '/reminders': 'Daily Assist — Reminders',
 };
 
@@ -35,7 +35,7 @@ function AppShell() {
     <main className="app-container">
       <header className="app-header">
         <div className="header-left">
-          {title && (
+          {location.pathname !== '/' && (
             <button className="back-btn" onClick={() => navigate('/')}>← Home</button>
           )}
           <h1>{title ?? 'Daily Assist'}</h1>
@@ -47,7 +47,7 @@ function AppShell() {
       </header>
 
       <Routes>
-        <Route path="/" element={<AppSelector />} />
+        <Route path="/" element={<RemindersList />} />
         <Route path="/reminders" element={<RemindersList />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

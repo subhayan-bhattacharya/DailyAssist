@@ -54,7 +54,7 @@ resource "aws_cognito_user_pool_client" "frontend" {
 
   read_attributes  = ["email", "name", "preferred_username"]
   write_attributes = ["email", "name", "preferred_username"]
-  
+
   callback_urls = ["https://${var.domain_name}"]
   logout_urls   = ["https://${var.domain_name}"]
 }

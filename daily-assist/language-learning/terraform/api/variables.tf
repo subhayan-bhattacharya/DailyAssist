@@ -45,3 +45,9 @@ variable "database_url_secret_name" {
   type        = string
   default     = "daily-assist/language-learning/database-url"
 }
+
+variable "frontend_origin" {
+  description = "Allowed frontend origin for API Gateway CORS responses"
+  type        = string
+  default     = "https://flashcards.poulomi-subhayan.click"
+}

@@ -58,6 +58,12 @@ variable "api_gateway_name" {
   default     = "daily_assist_reminders"
 }
 
+variable "frontend_origin" {
+  description = "Allowed frontend origin for API Gateway CORS responses"
+  type        = string
+  default     = "https://reminders.poulomi-subhayan.click"
+}
+
 variable "lambda_iam_role_name" {
   description = "Existing IAM role name for Lambda"
   type        = string

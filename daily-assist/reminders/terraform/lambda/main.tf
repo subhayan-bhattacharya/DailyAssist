@@ -93,7 +93,7 @@ locals {
     filesha256("${path.module}/${var.lambda_source_dir}/reminders/${f}")
   ])), 0, 8)
   dockerfile_hash = substr(filesha256("${path.module}/${var.lambda_source_dir}/reminders/Dockerfile"), 0, 8)
-  image_tag = "${local.code_hash}-${local.dockerfile_hash}"
+  image_tag       = "${local.code_hash}-${local.dockerfile_hash}"
 }
 
 # Build and push Docker image
@@ -103,11 +103,11 @@ resource "docker_image" "lambda" {
   build {
     context    = "${path.module}/${var.lambda_source_dir}"
     dockerfile = "reminders/Dockerfile"
-    tag        = [
+    tag = [
       "${aws_ecr_repository.lambda.repository_url}:${local.image_tag}",
       "${aws_ecr_repository.lambda.repository_url}:latest"
     ]
-    platform   = "linux/amd64"
+    platform = "linux/amd64"
   }
 
   triggers = {
@@ -266,7 +266,7 @@ resource "aws_api_gateway_integration_response" "proxy_options" {
   response_parameters = {
     "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
     "method.response.header.Access-Control-Allow-Methods" = "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
-    "method.response.header.Access-Control-Allow-Origin"  = "'https://poulomi-subhayan.click'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'${var.frontend_origin}'"
   }
   depends_on = [aws_api_gateway_integration.proxy_options]
 }
@@ -312,7 +312,7 @@ resource "aws_api_gateway_integration_response" "root_options" {
   response_parameters = {
     "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
     "method.response.header.Access-Control-Allow-Methods" = "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
-    "method.response.header.Access-Control-Allow-Origin"  = "'https://poulomi-subhayan.click'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'${var.frontend_origin}'"
   }
   depends_on = [aws_api_gateway_integration.root_options]
 }
@@ -324,7 +324,7 @@ resource "aws_api_gateway_gateway_response" "default_4xx" {
   rest_api_id   = data.aws_api_gateway_rest_api.existing_api.id
   response_type = "DEFAULT_4XX"
   response_parameters = {
-    "gatewayresponse.header.Access-Control-Allow-Origin"  = "'https://poulomi-subhayan.click'"
+    "gatewayresponse.header.Access-Control-Allow-Origin"  = "'${var.frontend_origin}'"
     "gatewayresponse.header.Access-Control-Allow-Headers" = "'Content-Type,Authorization'"
     "gatewayresponse.header.Access-Control-Allow-Methods" = "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
   }
@@ -337,7 +337,7 @@ resource "aws_api_gateway_gateway_response" "default_5xx" {
   rest_api_id   = data.aws_api_gateway_rest_api.existing_api.id
   response_type = "DEFAULT_5XX"
   response_parameters = {
-    "gatewayresponse.header.Access-Control-Allow-Origin"  = "'https://poulomi-subhayan.click'"
+    "gatewayresponse.header.Access-Control-Allow-Origin"  = "'${var.frontend_origin}'"
     "gatewayresponse.header.Access-Control-Allow-Headers" = "'Content-Type,Authorization'"
     "gatewayresponse.header.Access-Control-Allow-Methods" = "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
   }
@@ -360,6 +360,7 @@ resource "aws_api_gateway_deployment" "api" {
       aws_api_gateway_integration.root_options.id,
       aws_api_gateway_gateway_response.default_4xx.id,
       aws_api_gateway_gateway_response.default_5xx.id,
+      var.frontend_origin,
     ]))
   }
 
