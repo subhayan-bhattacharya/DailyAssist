@@ -2,10 +2,9 @@
 
 import json
 import logging
-import os
 from typing import Annotated, Optional
 
-from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 
@@ -14,6 +13,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 from core import data_structures
+from core.auth import get_user_context
 from core.utils import (
     create_new_reminder,
     delete_reminder_for_user,
@@ -41,42 +41,15 @@ app.add_middleware(
 )
 
 
-# Dependency to extract user details from Lambda event context
-# This mimics Chalice's CognitoUserPoolAuthorizer behavior
-def get_user_context(request: Request) -> data_structures.UserDetails:
-    """
-    Extract user details from API Gateway Lambda event.
-
-    When API Gateway uses Cognito authorizer, user info is available in:
-    request.scope["aws.event"]["requestContext"]["authorizer"]["claims"]
-
-    For local development without API Gateway, you can set a mock user.
-    """
-    # Check if running in Lambda with API Gateway
-    if "aws.event" in request.scope:
-        event = request.scope["aws.event"]
-        if "requestContext" in event and "authorizer" in event["requestContext"]:
-            claims = event["requestContext"]["authorizer"]["claims"]
-            return data_structures.UserDetails(
-                user_name=claims["cognito:username"],
-                user_email=claims["email"]
-            )
-
-    # For local development, return mock user or raise error
-    # You can customize this based on your local testing needs
-    if os.getenv("ENVIRONMENT") == "local":
-        return data_structures.UserDetails(
-            user_name="local_test_user",
-            user_email="test@example.com"
-        )
-
-    raise HTTPException(
-        status_code=401,
-        detail="Unauthorized - No user context found"
-    )
-
-
 UserContext = Annotated[data_structures.UserDetails, Depends(get_user_context)]
+
+
+def _redact_headers(headers: dict) -> dict:
+    """Redact sensitive request headers before writing Lambda logs."""
+    return {
+        key: "[REDACTED]" if key.lower() == "authorization" else value
+        for key, value in headers.items()
+    }
 
 
 # API Routes
@@ -181,7 +154,7 @@ def handler(event, context):
     logger.info("=== Lambda invoked ===")
     logger.info(f"HTTP Method: {event.get('httpMethod', 'N/A')}")
     logger.info(f"Path: {event.get('path', 'N/A')}")
-    logger.info(f"Headers: {json.dumps(event.get('headers', {}))}")
+    logger.info(f"Headers: {json.dumps(_redact_headers(event.get('headers') or {}))}")
     logger.info(f"Request Context: {json.dumps(event.get('requestContext', {}), default=str)}")
 
     try:

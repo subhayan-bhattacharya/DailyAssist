@@ -151,6 +151,7 @@ resource "aws_lambda_function" "api" {
   environment {
     variables = {
       DATABASE_URL_SECRET_ARN = data.aws_secretsmanager_secret.database_url.arn
+      ENVIRONMENT             = "production"
     }
   }
 
@@ -180,19 +181,36 @@ data "aws_api_gateway_resource" "root" {
   path        = "/"
 }
 
+resource "aws_api_gateway_resource" "health" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  parent_id   = data.aws_api_gateway_resource.root.id
+  path_part   = "health"
+}
+
 resource "aws_api_gateway_resource" "proxy" {
   rest_api_id = aws_api_gateway_rest_api.api.id
   parent_id   = data.aws_api_gateway_resource.root.id
   path_part   = "{proxy+}"
 }
 
-# ---------- ANY on proxy (no auth) ----------
+# ---------- Cognito Authorization ----------
+
+resource "aws_api_gateway_authorizer" "cognito" {
+  name            = "cognito-user-pool-authorizer"
+  rest_api_id     = aws_api_gateway_rest_api.api.id
+  type            = "COGNITO_USER_POOLS"
+  provider_arns   = [var.cognito_user_pool_arn]
+  identity_source = "method.request.header.Authorization"
+}
+
+# ---------- ANY on proxy (Cognito auth) ----------
 
 resource "aws_api_gateway_method" "proxy_any" {
   rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.proxy.id
   http_method   = "ANY"
-  authorization = "NONE"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
 }
 
 resource "aws_api_gateway_integration" "proxy_lambda" {
@@ -204,19 +222,38 @@ resource "aws_api_gateway_integration" "proxy_lambda" {
   uri                     = aws_lambda_function.api.invoke_arn
 }
 
-# ---------- ANY on root (no auth) ----------
+# ---------- ANY on root (Cognito auth) ----------
 
 resource "aws_api_gateway_method" "root_any" {
   rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = data.aws_api_gateway_resource.root.id
   http_method   = "ANY"
-  authorization = "NONE"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
 }
 
 resource "aws_api_gateway_integration" "root_lambda" {
   rest_api_id             = aws_api_gateway_rest_api.api.id
   resource_id             = data.aws_api_gateway_resource.root.id
   http_method             = aws_api_gateway_method.root_any.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.api.invoke_arn
+}
+
+# ---------- Health check (no auth) ----------
+
+resource "aws_api_gateway_method" "health_get" {
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  resource_id   = aws_api_gateway_resource.health.id
+  http_method   = "GET"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "health_lambda" {
+  rest_api_id             = aws_api_gateway_rest_api.api.id
+  resource_id             = aws_api_gateway_resource.health.id
+  http_method             = aws_api_gateway_method.health_get.http_method
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
   uri                     = aws_lambda_function.api.invoke_arn
@@ -349,6 +386,7 @@ resource "aws_api_gateway_deployment" "api" {
     redeployment = sha256(jsonencode([
       aws_api_gateway_integration.proxy_lambda.id,
       aws_api_gateway_integration.root_lambda.id,
+      aws_api_gateway_integration.health_lambda.id,
       aws_api_gateway_integration.proxy_options.id,
       aws_api_gateway_integration.root_options.id,
       aws_api_gateway_gateway_response.default_4xx.id,
@@ -364,6 +402,7 @@ resource "aws_api_gateway_deployment" "api" {
   depends_on = [
     aws_api_gateway_integration.proxy_lambda,
     aws_api_gateway_integration.root_lambda,
+    aws_api_gateway_integration.health_lambda,
     aws_api_gateway_integration_response.proxy_options,
     aws_api_gateway_integration_response.root_options,
     aws_api_gateway_gateway_response.default_4xx,

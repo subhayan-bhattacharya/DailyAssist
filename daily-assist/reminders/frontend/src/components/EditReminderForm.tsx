@@ -1,17 +1,7 @@
 import { useState, type FormEvent } from 'react';
-import { getAuthToken } from '../utils/auth';
+import { updateReminder } from '../api/client';
+import type { ReminderDetail, ReminderPayload } from '../api/types';
 import { formatToBackendDateTime, toDatetimeLocalValue } from '../utils/date';
-
-interface ReminderDetail {
-  reminder_id: string;
-  reminder_title: string;
-  reminder_description: string;
-  reminder_tags: string[];
-  reminder_frequency: string;
-  should_expire: boolean;
-  reminder_expiration_date_time: string | null;
-  next_reminder_date_time: string | null;
-}
 
 interface EditReminderFormProps {
   reminder: ReminderDetail;
@@ -38,8 +28,6 @@ export function EditReminderForm({ reminder, onSuccess, onCancel }: EditReminder
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const apiUrl = import.meta.env.VITE_API_URL;
-
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
@@ -62,7 +50,7 @@ export function EditReminderForm({ reminder, onSuccess, onCancel }: EditReminder
       .map((t) => t.trim())
       .filter((t) => t.length > 0);
 
-    const body: Record<string, unknown> = {
+    const body: ReminderPayload = {
       reminder_title: title.trim(),
       reminder_description: description.trim(),
       reminder_tags: parsedTags,
@@ -80,21 +68,7 @@ export function EditReminderForm({ reminder, onSuccess, onCancel }: EditReminder
 
     try {
       setSubmitting(true);
-      const token = await getAuthToken();
-      const response = await fetch(`${apiUrl}/reminders/${reminder.reminder_id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to update reminder: ${response.status} - ${errorText}`);
-      }
-
+      await updateReminder(reminder.reminder_id, body);
       onSuccess();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');

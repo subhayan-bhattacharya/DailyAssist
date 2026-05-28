@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
-import { getAuthToken } from '../utils/auth';
+import { createReminder } from '../api/client';
+import type { ReminderPayload } from '../api/types';
 import { formatToBackendDateTime } from '../utils/date';
 
 interface AddReminderFormProps {
@@ -17,8 +18,6 @@ export function AddReminderForm({ onSuccess, onCancel }: AddReminderFormProps) {
   const [nextReminderDateTime, setNextReminderDateTime] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const apiUrl = import.meta.env.VITE_API_URL;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -42,7 +41,7 @@ export function AddReminderForm({ onSuccess, onCancel }: AddReminderFormProps) {
       .map((t) => t.trim())
       .filter((t) => t.length > 0);
 
-    const body: Record<string, unknown> = {
+    const body: ReminderPayload = {
       reminder_title: title.trim(),
       reminder_description: description.trim(),
       reminder_tags: parsedTags,
@@ -60,21 +59,7 @@ export function AddReminderForm({ onSuccess, onCancel }: AddReminderFormProps) {
 
     try {
       setSubmitting(true);
-      const token = await getAuthToken();
-      const response = await fetch(`${apiUrl}/reminders`, {
-        method: 'POST',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to create reminder: ${response.status} - ${errorText}`);
-      }
-
+      await createReminder(body);
       onSuccess();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');

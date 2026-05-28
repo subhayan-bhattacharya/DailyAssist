@@ -1,5 +1,7 @@
 # Language Learning Frontend Plan
 
+> Update 2026-05-28: the shared authenticated shell described here is now tracked in `docs/plans/2026-05-28-unified-domain-auth.md` and implemented under `daily-assist/frontend-shell`. Language Learning should remain a feature section mounted by that shell, not a standalone owner of login/header behavior.
+
 ## Goal
 Build a React + TypeScript + Vite frontend for the German flashcards language-learning app, visually aligned with the existing Daily Assist reminders frontend so it can become one section of the authenticated Daily Assist site.
 

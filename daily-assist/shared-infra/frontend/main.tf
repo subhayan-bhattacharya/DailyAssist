@@ -27,6 +27,39 @@ data "aws_cognito_user_pool" "main" {
   user_pool_id = var.cognito_user_pool_id
 }
 
+# ---------- Cognito App Client ----------
+
+resource "aws_cognito_user_pool_client" "frontend" {
+  name         = "daily-assist-frontend"
+  user_pool_id = data.aws_cognito_user_pool.main.id
+
+  generate_secret = false
+
+  explicit_auth_flows = [
+    "ALLOW_USER_PASSWORD_AUTH",
+    "ALLOW_REFRESH_TOKEN_AUTH",
+    "ALLOW_USER_SRP_AUTH",
+  ]
+
+  access_token_validity  = 1
+  id_token_validity      = 1
+  refresh_token_validity = 30
+
+  token_validity_units {
+    access_token  = "hours"
+    id_token      = "hours"
+    refresh_token = "days"
+  }
+
+  prevent_user_existence_errors = "ENABLED"
+
+  read_attributes  = ["email", "name", "preferred_username"]
+  write_attributes = ["email", "name", "preferred_username"]
+
+  callback_urls = ["https://${var.domain_name}"]
+  logout_urls   = ["https://${var.domain_name}"]
+}
+
 # ---------- Route 53 Hosted Zone (existing) ----------
 
 data "aws_route53_zone" "main" {

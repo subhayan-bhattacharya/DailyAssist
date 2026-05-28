@@ -1,4 +1,4 @@
-import { getAuthToken } from '../utils/auth';
+import { isApiError, requestJson } from '../../../../shared/frontend/http';
 import type {
   AppSettings,
   ExamplesResponse,
@@ -11,7 +11,10 @@ import type {
   WordSearchResponse,
 } from './types';
 
-const apiUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000';
+const apiUrl = import.meta.env.VITE_FLASHCARDS_API_URL
+  ?? import.meta.env.VITE_LANGUAGE_API_URL
+  ?? import.meta.env.VITE_API_URL
+  ?? 'http://127.0.0.1:8000';
 const useMockApi = import.meta.env.VITE_MOCK_API === 'true';
 
 const mockWords: FlashcardsResponse = {
@@ -38,42 +41,15 @@ const mockWords: FlashcardsResponse = {
   ],
 };
 
-class ApiError extends Error {
-  status: number;
-
-  constructor(message: string, status: number) {
-    super(message);
-    this.name = 'ApiError';
-    this.status = status;
-  }
-}
-
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = await getAuthToken();
-  const headers = new Headers(options.headers);
-  headers.set('Content-Type', 'application/json');
-
-  if (token) {
-    headers.set('Authorization', token);
-  }
-
-  const response = await fetch(`${apiUrl}${path}`, { ...options, headers });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new ApiError(text || `Request failed with status ${response.status}`, response.status);
-  }
-
-  return response.json() as Promise<T>;
+  return requestJson<T>(apiUrl, path, options);
 }
 
 export function getApiBaseUrl(): string {
   return apiUrl;
 }
 
-export function isApiError(error: unknown): error is ApiError {
-  return error instanceof ApiError;
-}
+export { isApiError };
 
 export function fetchFlashcards(): Promise<FlashcardsResponse> {
   if (useMockApi) {

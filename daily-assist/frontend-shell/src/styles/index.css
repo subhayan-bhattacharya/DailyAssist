@@ -1,0 +1,144 @@
+@import '../../../reminders/frontend/src/index.css';
+@import '../../../reminders/frontend/src/App.css';
+@import '../../../language-learning/frontend/src/App.css';
+
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: light;
+  color: #213547;
+  background-color: #f5f7fa;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.app-container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.app-kicker,
+.login-eyebrow,
+.selector-intro .eyebrow {
+  margin: 0 0 2px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.selector-intro .eyebrow {
+  color: #1a237e;
+}
+
+.login-eyebrow {
+  color: #1a237e;
+  text-align: center;
+}
+
+.app-header {
+  gap: 18px;
+}
+
+.selector-page {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.selector-intro {
+  margin-bottom: 22px;
+}
+
+.selector-intro h2 {
+  margin: 0;
+  color: #333;
+  font-size: 1.7rem;
+}
+
+.selector-intro p {
+  margin: 4px 0 0;
+  color: #666;
+}
+
+.selector-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.app-card {
+  display: grid;
+  gap: 8px;
+  padding: 22px;
+  text-align: left;
+  background: #fafafa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  transition: background-color 0.2s, border-color 0.2s, transform 0.2s;
+}
+
+.app-card:hover,
+.app-card:focus-visible {
+  background: #f0f0fa;
+  border-color: #1a237e;
+  transform: translateY(-1px);
+}
+
+.app-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  color: #1a237e;
+  background: #e8eaf6;
+  border: 1px solid #c5cae9;
+  border-radius: 999px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.app-card-title {
+  color: #1a237e;
+  font-size: 1.15rem;
+  font-weight: 750;
+}
+
+.app-card-copy {
+  color: #555;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 720px) {
+  .selector-grid {
+    grid-template-columns: 1fr;
+  }
+}

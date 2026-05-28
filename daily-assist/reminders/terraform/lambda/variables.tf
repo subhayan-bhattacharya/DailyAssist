@@ -61,7 +61,7 @@ variable "api_gateway_name" {
 variable "frontend_origin" {
   description = "Allowed frontend origin for API Gateway CORS responses"
   type        = string
-  default     = "https://reminders.poulomi-subhayan.click"
+  default     = "https://poulomi-subhayan.click"
 }
 
 variable "lambda_iam_role_name" {

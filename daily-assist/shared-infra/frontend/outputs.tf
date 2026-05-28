@@ -3,6 +3,11 @@ output "cognito_user_pool_id" {
   value       = data.aws_cognito_user_pool.main.id
 }
 
+output "cognito_client_id" {
+  description = "Cognito App Client ID for the unified DailyAssist frontend"
+  value       = aws_cognito_user_pool_client.frontend.id
+}
+
 output "cloudfront_distribution_id" {
   description = "CloudFront distribution ID (use for cache invalidation)"
   value       = aws_cloudfront_distribution.frontend.id

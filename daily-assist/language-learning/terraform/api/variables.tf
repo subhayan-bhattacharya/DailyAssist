@@ -49,5 +49,11 @@ variable "database_url_secret_name" {
 variable "frontend_origin" {
   description = "Allowed frontend origin for API Gateway CORS responses"
   type        = string
-  default     = "https://flashcards.poulomi-subhayan.click"
+  default     = "https://poulomi-subhayan.click"
+}
+
+variable "cognito_user_pool_arn" {
+  description = "Cognito User Pool ARN"
+  type        = string
+  default     = "arn:aws:cognito-idp:eu-central-1:498129003450:userpool/eu-central-1_l5zXIFCUv"
 }

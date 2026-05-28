@@ -1,0 +1,41 @@
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "types": ["vite/client"],
+    "baseUrl": ".",
+    "paths": {
+      "react": ["node_modules/@types/react"],
+      "react/jsx-runtime": ["node_modules/@types/react/jsx-runtime"],
+      "react-dom": ["node_modules/@types/react-dom"],
+      "react-dom/client": ["node_modules/@types/react-dom/client"],
+      "react-router-dom": ["node_modules/react-router-dom"],
+      "aws-amplify": ["node_modules/aws-amplify"],
+      "aws-amplify/*": ["node_modules/aws-amplify/*"],
+      "@aws-amplify/ui-react": ["node_modules/@aws-amplify/ui-react"],
+      "@aws-amplify/ui-react/*": ["node_modules/@aws-amplify/ui-react/*"]
+    },
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
+  },
+  "include": [
+    "src",
+    "../shared/frontend",
+    "../reminders/frontend/src",
+    "../language-learning/frontend/src"
+  ]
+}

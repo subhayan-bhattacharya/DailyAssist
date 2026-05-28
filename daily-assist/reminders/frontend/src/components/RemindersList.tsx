@@ -1,26 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getAuthToken } from '../utils/auth';
+import { deleteReminder, fetchReminderDetail, fetchReminders } from '../api/client';
+import type { Reminder, ReminderDetail } from '../api/types';
 import { AddReminderForm } from './AddReminderForm';
 import { EditReminderForm } from './EditReminderForm';
-
-interface Reminder {
-  reminder_id: string;
-  reminder_title: string;
-  reminder_tags: string[];
-  reminder_expiration_date_time: string | null;
-}
-
-interface ReminderDetail {
-  reminder_id: string;
-  reminder_title: string;
-  reminder_description: string;
-  reminder_tags: string[];
-  reminder_frequency: string;
-  should_expire: boolean;
-  reminder_expiration_date_time: string | null;
-  next_reminder_date_time: string | null;
-  reminder_creation_time: string;
-}
 
 function formatDate(value: string): string {
   const date = new Date(value);
@@ -44,65 +26,31 @@ export function RemindersList() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingReminder, setEditingReminder] = useState<ReminderDetail | null>(null);
 
-  const apiUrl = import.meta.env.VITE_API_URL;
-
-  const fetchReminders = useCallback(async () => {
+  const loadReminders = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       setSelectedReminder(null);
 
-      const token = await getAuthToken();
-      const response = await fetch(`${apiUrl}/reminders`, {
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to fetch reminders: ${response.status} - ${errorText}`);
-      }
-
-      const data = await response.json();
-      data.sort((a: Reminder, b: Reminder) => {
-        if (a.reminder_expiration_date_time === null && b.reminder_expiration_date_time === null) return 0;
-        if (a.reminder_expiration_date_time === null) return 1;
-        if (b.reminder_expiration_date_time === null) return -1;
-        return new Date(a.reminder_expiration_date_time).getTime() - new Date(b.reminder_expiration_date_time).getTime();
-      });
+      const data = await fetchReminders();
       setReminders(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
-  }, [apiUrl]);
+  }, []);
 
   useEffect(() => {
-    fetchReminders();
-  }, [fetchReminders]);
+    loadReminders();
+  }, [loadReminders]);
 
-  async function fetchReminderDetail(reminderId: string) {
+  async function loadReminderDetail(reminderId: string) {
     try {
       setDetailLoading(true);
       setError(null);
 
-      const token = await getAuthToken();
-      const response = await fetch(`${apiUrl}/reminders/${reminderId}`, {
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to fetch reminder: ${response.status} - ${errorText}`);
-      }
-
-      const data = await response.json();
+      const data = await fetchReminderDetail(reminderId);
       setSelectedReminder(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -114,20 +62,7 @@ export function RemindersList() {
   async function startEditing(reminderId: string) {
     try {
       setError(null);
-      const token = await getAuthToken();
-      const response = await fetch(`${apiUrl}/reminders/${reminderId}`, {
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to fetch reminder: ${response.status} - ${errorText}`);
-      }
-
-      const data = await response.json();
+      const data = await fetchReminderDetail(reminderId);
       setEditingReminder(data);
       setSelectedReminder(null);
       setShowAddForm(false);
@@ -136,30 +71,17 @@ export function RemindersList() {
     }
   }
 
-  async function deleteReminder(reminderId: string) {
+  async function removeReminder(reminderId: string) {
     if (!confirm('Are you sure you want to delete this reminder?')) {
       return;
     }
     try {
       setError(null);
-      const token = await getAuthToken();
-      const response = await fetch(`${apiUrl}/reminders/${reminderId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to delete reminder: ${response.status} - ${errorText}`);
-      }
-
+      await deleteReminder(reminderId);
       if (selectedReminder?.reminder_id === reminderId) {
         setSelectedReminder(null);
       }
-      fetchReminders();
+      loadReminders();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     }
@@ -173,7 +95,7 @@ export function RemindersList() {
     return (
       <div className="error">
         <p>Error: {error}</p>
-        <button onClick={fetchReminders}>Retry</button>
+        <button onClick={loadReminders}>Retry</button>
       </div>
     );
   }
@@ -188,7 +110,7 @@ export function RemindersList() {
         <h2>Your Reminders</h2>
         <div className="header-actions">
           <button onClick={() => setShowAddForm(true)} className="add-btn">Add Reminder</button>
-          <button onClick={fetchReminders} className="refresh-btn">Refresh</button>
+          <button onClick={loadReminders} className="refresh-btn">Refresh</button>
         </div>
       </div>
 
@@ -196,7 +118,7 @@ export function RemindersList() {
         <AddReminderForm
           onSuccess={() => {
             setShowAddForm(false);
-            fetchReminders();
+            loadReminders();
           }}
           onCancel={() => setShowAddForm(false)}
         />
@@ -207,7 +129,7 @@ export function RemindersList() {
           reminder={editingReminder}
           onSuccess={() => {
             setEditingReminder(null);
-            fetchReminders();
+            loadReminders();
           }}
           onCancel={() => setEditingReminder(null)}
         />
@@ -218,7 +140,7 @@ export function RemindersList() {
           <li
             key={reminder.reminder_id}
             className={`reminder-item ${selectedReminder?.reminder_id === reminder.reminder_id ? 'selected' : ''}`}
-            onClick={() => fetchReminderDetail(reminder.reminder_id)}
+            onClick={() => loadReminderDetail(reminder.reminder_id)}
           >
             <div className="reminder-item-content">
               <div className="reminder-item-left">
@@ -254,7 +176,7 @@ export function RemindersList() {
                   title="Delete reminder"
                   onClick={(e) => {
                     e.stopPropagation();
-                    deleteReminder(reminder.reminder_id);
+                    removeReminder(reminder.reminder_id);
                   }}
                 >
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">

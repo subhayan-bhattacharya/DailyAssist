@@ -1,31 +1,33 @@
 # DailyAssist
 
-A serverless reminders application with a FastAPI backend deployed to AWS Lambda and a React frontend served via CloudFront. Users authenticate via AWS Cognito to create, manage, and share reminders stored in DynamoDB.
+DailyAssist is a small suite of personal applications behind one authenticated frontend at `https://poulomi-subhayan.click`. A shared React shell owns Cognito login, sign-out, top-level routing, and the app selector; Reminders and German Flashcards stay as separate feature modules and backend APIs.
 
 ## Architecture Overview
 
 ```
-React (Amplify auth) -> API Gateway (Cognito authorizer) -> Lambda (Mangum) -> FastAPI -> DynamoDB
-                                                                                       -> SNS (notifications)
+React shell (Amplify auth)
+  -> /reminders  -> Reminders feature -> API Gateway (Cognito authorizer) -> Lambda -> FastAPI -> DynamoDB -> SNS
+  -> /flashcards -> Flashcards feature -> API Gateway (Cognito authorizer) -> Lambda -> FastAPI -> Postgres
 ```
 
 ## AWS Services
 
 | Service | Purpose |
 |---------|---------|
-| **S3** | Hosts the built React static assets (JS bundles, CSS, index.html) |
-| **CloudFront** | CDN — serves assets from global edge locations, terminates SSL |
+| **S3** | Hosts the unified React shell static assets (JS bundles, CSS, index.html) |
+| **CloudFront** | CDN — serves the apex domain, terminates SSL, and falls back to `index.html` for SPA routes |
 | **Route53** | DNS — maps `poulomi-subhayan.click` to the CloudFront distribution |
 | **ACM** | SSL/TLS certificate for the custom domain |
 | **Cognito** | User pool and app client for authentication |
-| **API Gateway** | REST API with Cognito authorizer |
-| **Lambda** | Runs the FastAPI backend via Mangum ASGI adapter |
+| **API Gateway** | REST APIs with Cognito authorizers |
+| **Lambda** | Runs each FastAPI backend via Mangum ASGI adapter |
 | **DynamoDB** | Stores reminders (hash: `reminder_id`, range: `user_id`) |
+| **Postgres** | Stores German Flashcards vocabulary, prompts, settings, and review data |
 | **SNS** | Sends reminder notifications |
 
 ## Frontend Deployment
 
-All frontend infrastructure is defined in Terraform at `reminders/terraform/frontend/main.tf`.
+The production frontend is built from `frontend-shell/` and deployed to the apex-domain infrastructure in `shared-infra/frontend/`.
 
 ### Request Flow
 
@@ -48,7 +50,7 @@ Browser hits https://poulomi-subhayan.click
     - Only CloudFront can read objects (bucket policy scoped to distribution ARN)
     - Serves index.html + Vite-built JS/CSS bundles
       |
-   [React app loads in browser, Amplify initializes]
+   [React shell loads in browser, Amplify initializes]
       |
       v
  4. Cognito (Authentication)
@@ -60,10 +62,11 @@ Browser hits https://poulomi-subhayan.click
    [User is now authenticated]
       |
       v
- 5. API calls to backend
-    - Frontend calls API Gateway endpoint with Cognito ID token in Authorization header
+ 5. API calls to backends
+    - Feature API clients call their API Gateway endpoint with the Cognito ID token in the Authorization header
     - API Gateway validates token via its Cognito authorizer
-    - Request forwarded to Lambda -> FastAPI -> DynamoDB
+    - Reminders requests resolve `cognito:username` and use it as the DynamoDB `user_id`
+    - Flashcards requests are authenticated before reaching the language-learning FastAPI app
     - CORS headers allow origin: https://poulomi-subhayan.click
 ```
 
@@ -85,11 +88,7 @@ Configured with `generate_secret = false` (required for browser-based apps). Sup
 
 ### Deployment Process
 
-Running `terraform apply` in `reminders/terraform/frontend/` triggers a `null_resource` provisioner that:
-
-1. Runs `npm ci && npm run build` in the frontend directory
-2. Syncs the `dist/` output to S3 with `--delete` (removes stale files)
-3. Creates a CloudFront cache invalidation on `/*` so users get fresh content immediately
+Deploy the frontend with `frontend-shell/deploy.sh`. The script reads Terraform outputs from `shared-infra/frontend`, `reminders/terraform/lambda`, and `language-learning/terraform/api`, then builds and syncs the unified shell to the apex S3 bucket.
 
 ## Development Commands
 
@@ -112,7 +111,7 @@ cd reminders && uv run pytest tests/app/test_app.py::test_function_name -v
 ### Frontend (React + TypeScript + Vite)
 
 ```bash
-cd reminders/frontend
+cd frontend-shell
 npm run dev      # Dev server on port 5173
 npm run build    # TypeScript compile + Vite build
 npm run lint     # ESLint
@@ -125,8 +124,8 @@ npm run lint     # ESLint
 cd reminders/terraform/lambda
 terraform init && terraform apply
 
-# Deploy frontend (S3 + CloudFront + Route53 + ACM)
-cd reminders/terraform/frontend
+# Deploy frontend infrastructure (S3 + CloudFront + Route53 + ACM)
+cd shared-infra/frontend
 terraform init && terraform apply
 ```
 

@@ -6,6 +6,11 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "types": ["vite/client"],
+    "baseUrl": ".",
+    "paths": {
+      "aws-amplify": ["node_modules/aws-amplify"],
+      "aws-amplify/*": ["node_modules/aws-amplify/*"]
+    },
     "skipLibCheck": true,
 
     /* Bundler mode */
