@@ -106,6 +106,7 @@ locals {
   image_tag = substr(sha256(join("", concat(
     [
       filesha256("${local.source_root}/Dockerfile.scheduled"),
+      filesha256("${local.source_root}/.dockerignore"),
       filesha256("${local.source_root}/pyproject.toml"),
       filesha256("${local.source_root}/uv.lock")
     ],

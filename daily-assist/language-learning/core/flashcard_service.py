@@ -15,7 +15,7 @@ def _get_daily_word_count(db: Session) -> int:
     return daily_word_count
 
 
-def _select_flashcard_word_ids(db: Session, limit: int, target_date: date, excluded_word_ids=None):
+def _select_flashcard_word_ids(db: Session, limit: int, excluded_word_ids=None):
     excluded_word_ids = set(excluded_word_ids or [])
     if limit <= 0:
         logger.info("Skipping flashcard selection because requested limit is %s", limit)
@@ -30,11 +30,6 @@ def _select_flashcard_word_ids(db: Session, limit: int, target_date: date, exclu
             FROM flashcard_views
             ORDER BY word_id, viewed_at DESC
         ),
-        past_selections AS (
-            SELECT DISTINCT unnest(word_ids) as word_id
-            FROM daily_selections
-            WHERE selected_on < :target_date
-        ),
         word_schedule AS (
             SELECT
                 w.id,
@@ -47,19 +42,13 @@ def _select_flashcard_word_ids(db: Session, limit: int, target_date: date, exclu
                     WHEN 4 THEN lv.viewed_at + INTERVAL '7 days'
                     WHEN 5 THEN lv.viewed_at + INTERVAL '14 days'
                     ELSE NULL
-                END AS next_review_at,
-                CASE
-                    WHEN ps.word_id IS NOT NULL AND lv.confidence IS NULL THEN 1
-                    ELSE 2
-                END AS priority
+                END AS next_review_at
             FROM words w
             LEFT JOIN latest_view lv ON lv.word_id = w.id
-            LEFT JOIN past_selections ps ON ps.word_id = w.id
             WHERE w.enrichment_status = 'completed'
         )
         SELECT id FROM word_schedule
         ORDER BY
-            priority ASC,
             next_review_at ASC NULLS FIRST,
             viewed_at ASC NULLS FIRST
         LIMIT :candidate_limit;
@@ -67,13 +56,12 @@ def _select_flashcard_word_ids(db: Session, limit: int, target_date: date, exclu
 
     candidate_limit = limit + len(excluded_word_ids)
     logger.info(
-        "Selecting flashcard word IDs: limit=%s excluded_count=%s candidate_limit=%s target_date=%s",
+        "Selecting flashcard word IDs: limit=%s excluded_count=%s candidate_limit=%s",
         limit,
         len(excluded_word_ids),
         candidate_limit,
-        target_date,
     )
-    result = db.execute(selection_query, {"candidate_limit": candidate_limit, "target_date": target_date})
+    result = db.execute(selection_query, {"candidate_limit": candidate_limit})
 
     selected_word_ids = []
     for row in result:
@@ -85,6 +73,93 @@ def _select_flashcard_word_ids(db: Session, limit: int, target_date: date, exclu
             break
 
     logger.info("Selected %s flashcard word ID(s)", len(selected_word_ids))
+    return selected_word_ids
+
+
+def _select_unfinished_past_word_ids(db: Session, target_date: date, limit: int, excluded_word_ids=None):
+    excluded_word_ids = set(excluded_word_ids or [])
+    if limit <= 0:
+        logger.info("Skipping unfinished flashcard selection because requested limit is %s", limit)
+        return []
+
+    unfinished_query = text("""
+        WITH unfinished_instances AS (
+            SELECT
+                selected.word_id,
+                ds.selected_on,
+                selected.word_position
+            FROM daily_selections ds
+            CROSS JOIN LATERAL unnest(ds.word_ids) WITH ORDINALITY AS selected(word_id, word_position)
+            JOIN words w ON w.id = selected.word_id
+            WHERE ds.selected_on < :target_date
+              AND w.enrichment_status = 'completed'
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM flashcard_views fv
+                  WHERE fv.word_id = selected.word_id
+                    AND fv.viewed_at >= ds.created_at
+              )
+        ),
+        oldest_unfinished_per_word AS (
+            SELECT DISTINCT ON (word_id)
+                word_id,
+                selected_on,
+                word_position
+            FROM unfinished_instances
+            ORDER BY word_id, selected_on ASC, word_position ASC
+        )
+        SELECT word_id
+        FROM oldest_unfinished_per_word
+        ORDER BY selected_on ASC, word_position ASC
+        LIMIT :candidate_limit;
+    """)
+
+    candidate_limit = limit + len(excluded_word_ids)
+    logger.info(
+        "Selecting unfinished past flashcard word IDs: limit=%s excluded_count=%s candidate_limit=%s target_date=%s",
+        limit,
+        len(excluded_word_ids),
+        candidate_limit,
+        target_date,
+    )
+    result = db.execute(unfinished_query, {"candidate_limit": candidate_limit, "target_date": target_date})
+
+    selected_word_ids = []
+    for row in result:
+        word_id = row[0]
+        if word_id in excluded_word_ids:
+            continue
+        selected_word_ids.append(word_id)
+        if len(selected_word_ids) == limit:
+            break
+
+    logger.info("Selected %s unfinished past flashcard word ID(s)", len(selected_word_ids))
+    return selected_word_ids
+
+
+def _create_daily_selection_word_ids(db: Session, target_date: date, daily_word_count: int):
+    unfinished_word_ids = _select_unfinished_past_word_ids(
+        db,
+        target_date=target_date,
+        limit=daily_word_count,
+    )
+    remaining_count = daily_word_count - len(unfinished_word_ids)
+    scheduled_word_ids = []
+    if remaining_count > 0:
+        scheduled_word_ids = _select_flashcard_word_ids(
+            db,
+            limit=remaining_count,
+            excluded_word_ids=unfinished_word_ids,
+        )
+
+    selected_word_ids = unfinished_word_ids + scheduled_word_ids
+    logger.info(
+        "Created daily selection word ID list for %s: unfinished_count=%s scheduled_count=%s total_count=%s",
+        target_date,
+        len(unfinished_word_ids),
+        len(scheduled_word_ids),
+        len(selected_word_ids),
+    )
     return selected_word_ids
 
 
@@ -135,7 +210,6 @@ def get_daily_flashcards(db: Session):
             replacement_word_ids = _select_flashcard_word_ids(
                 db,
                 limit=missing_count,
-                target_date=today,
                 excluded_word_ids=word_ids,
             )
             word_ids = word_ids + replacement_word_ids
@@ -154,7 +228,11 @@ def get_daily_flashcards(db: Session):
 
     # 3. If missing, run selection query
     logger.info("No cached daily flashcard selection found for %s; creating a new selection", today)
-    selected_word_ids = _select_flashcard_word_ids(db, limit=daily_word_count, target_date=today)
+    selected_word_ids = _create_daily_selection_word_ids(
+        db,
+        target_date=today,
+        daily_word_count=daily_word_count,
+    )
 
     # Cache the new selection
     new_selection = DailySelection(

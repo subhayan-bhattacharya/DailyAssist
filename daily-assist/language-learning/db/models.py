@@ -52,6 +52,10 @@ class ExampleSentence(Base):
 
 class FlashcardView(Base):
     __tablename__ = "flashcard_views"
+    __table_args__ = (
+        Index("idx_flashcard_views_word_viewed_at", "word_id", text("viewed_at DESC")),
+    )
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, server_default=text("gen_random_uuid()"))
     word_id = Column(UUID(as_uuid=True), ForeignKey("words.id", ondelete="CASCADE"), nullable=False)
     viewed_at = Column(DateTime(timezone=True), server_default=func.now())

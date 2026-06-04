@@ -1,0 +1,15 @@
+**
+
+!Dockerfile.lambda
+!Dockerfile.scheduled
+!pyproject.toml
+!uv.lock
+
+!api/
+!api/**
+!core/
+!core/**
+!db/
+!db/**
+!scheduled/
+!scheduled/**

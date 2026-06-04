@@ -53,3 +53,6 @@ CREATE TABLE flashcard_views (
     viewed_at    TIMESTAMPTZ DEFAULT NOW(),
     confidence   SMALLINT CHECK (confidence BETWEEN 1 AND 5)  -- optional: 1=hard, 5=easy
 );
+
+CREATE INDEX idx_flashcard_views_word_viewed_at
+ON flashcard_views (word_id, viewed_at DESC);
