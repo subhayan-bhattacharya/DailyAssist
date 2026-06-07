@@ -17,8 +17,3 @@ output "ecr_repository_url" {
   description = "URL of the ECR repository"
   value       = aws_ecr_repository.api.repository_url
 }
-
-output "image_tag" {
-  description = "Docker image tag deployed"
-  value       = local.image_tag
-}

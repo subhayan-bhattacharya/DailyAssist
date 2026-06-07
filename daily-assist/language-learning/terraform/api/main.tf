@@ -98,47 +98,46 @@ provider "docker" {
 
 # ---------- Docker image ----------
 
-locals {
-  source_root = "${path.module}/${var.lambda_source_dir}"
-  image_tag = substr(sha256(join("", concat(
-    [
-      filesha256("${local.source_root}/Dockerfile.lambda"),
-      filesha256("${local.source_root}/.dockerignore"),
-      filesha256("${local.source_root}/pyproject.toml"),
-      filesha256("${local.source_root}/uv.lock"),
-    ],
-    [for f in fileset("${local.source_root}/api", "**/*.py") : filesha256("${local.source_root}/api/${f}")],
-    [for f in fileset("${local.source_root}/core", "**/*.py") : filesha256("${local.source_root}/core/${f}")],
-    [for f in fileset("${local.source_root}/db", "**/*.py") : filesha256("${local.source_root}/db/${f}")]
-  ))), 0, 12)
-}
+# locals {
+#   source_root = "${path.module}/${var.lambda_source_dir}"
+#   image_tag = substr(sha256(join("", concat(
+#     [
+#       filesha256("${local.source_root}/Dockerfile.lambda"),
+#       filesha256("${local.source_root}/.dockerignore"),
+#       filesha256("${local.source_root}/pyproject.toml"),
+#       filesha256("${local.source_root}/uv.lock"),
+#     ],
+#     [for f in fileset("${local.source_root}/api", "**/*.py") : filesha256("${local.source_root}/api/${f}")],
+#     [for f in fileset("${local.source_root}/core", "**/*.py") : filesha256("${local.source_root}/core/${f}")],
+#     [for f in fileset("${local.source_root}/db", "**/*.py") : filesha256("${local.source_root}/db/${f}")]
+#   ))), 0, 12)
+# }
 
-resource "docker_image" "api" {
-  name = "${aws_ecr_repository.api.repository_url}:${local.image_tag}"
+# resource "docker_image" "api" {
+#   name = "${aws_ecr_repository.api.repository_url}:${local.image_tag}"
+#
+#   build {
+#     context    = local.source_root
+#     dockerfile = "Dockerfile.lambda"
+#     tag = [
+#       "${aws_ecr_repository.api.repository_url}:${local.image_tag}",
+#       "${aws_ecr_repository.api.repository_url}:latest",
+#     ]
+#     platform = "linux/amd64"
+#   }
+#
+#   triggers = {
+#     image_tag = local.image_tag
+#   }
+# }
 
-  build {
-    context    = local.source_root
-    dockerfile = "Dockerfile.lambda"
-    tag = [
-      "${aws_ecr_repository.api.repository_url}:${local.image_tag}",
-      "${aws_ecr_repository.api.repository_url}:latest",
-    ]
-    platform = "linux/amd64"
-  }
-
-  triggers = {
-    image_tag = local.image_tag
-  }
-}
-
-resource "docker_registry_image" "api" {
-  name = docker_image.api.name
-
-  triggers = {
-    image_id = docker_image.api.image_id
-  }
-}
-
+# resource "docker_registry_image" "api" {
+#   name = docker_image.api.name
+#
+#   triggers = {
+#     image_id = docker_image.api.image_id
+#   }
+# }
 # ---------- Lambda ----------
 
 resource "aws_lambda_function" "api" {
@@ -147,7 +146,7 @@ resource "aws_lambda_function" "api" {
   timeout       = var.lambda_timeout
   memory_size   = var.lambda_memory_size
   package_type  = "Image"
-  image_uri     = "${aws_ecr_repository.api.repository_url}:${local.image_tag}"
+  image_uri     = "${aws_ecr_repository.api.repository_url}:${var.api_image_tag}"
 
   environment {
     variables = {
@@ -158,7 +157,6 @@ resource "aws_lambda_function" "api" {
 
   depends_on = [
     aws_iam_role_policy.secrets_access,
-    docker_registry_image.api,
   ]
 }
 

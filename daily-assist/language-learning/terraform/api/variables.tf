@@ -34,11 +34,6 @@ variable "lambda_iam_role_name" {
   default     = "CoudWatchAndDynamodbAccessRoleForLambda"
 }
 
-variable "lambda_source_dir" {
-  description = "Path to language-learning source directory relative to this module"
-  type        = string
-  default     = "../.."
-}
 
 variable "database_url_secret_name" {
   description = "Secrets Manager secret name for the Neon database URL (created by scheduled terraform)"
@@ -56,4 +51,10 @@ variable "cognito_user_pool_arn" {
   description = "Cognito User Pool ARN"
   type        = string
   default     = "arn:aws:cognito-idp:eu-central-1:498129003450:userpool/eu-central-1_l5zXIFCUv"
+}
+
+variable "api_image_tag" {
+  description = "The image tag to use for the language learning api."
+  type        = string
+  default     = "0.0.1"
 }
